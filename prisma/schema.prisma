@@ -1,0 +1,123 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  staff   Staff?
+  patient Patient?
+}
+
+model Staff {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  name      String
+  phone     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user        User       @relation(fields: [userId], references: [id])
+  attendance  Attendance[]
+  therapies   TherapyAssignment[]
+  permissions Permission?
+}
+
+model Patient {
+  id        String   @id @default(cuid())
+  userId    String?  @unique
+  patientName String
+  childName   String?
+  age       Int
+  sex       String
+  services  String
+  amount    Int
+  advance   Int       @default(0)
+  due       Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user       User?      @relation(fields: [userId], references: [id])
+  attendance Attendance[]
+  therapies  TherapyAssignment[]
+  ledgers    Ledger[]
+}
+
+model Attendance {
+  id         String   @id @default(cuid())
+  date       DateTime
+  checkIn    DateTime?
+  checkOut   DateTime?
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  staffId   String?
+  patientId String?
+
+  staff   Staff?   @relation(fields: [staffId], references: [id])
+  patient Patient? @relation(fields: [patientId], references: [id])
+}
+
+model Ledger {
+  id          String   @id @default(cuid())
+  date        DateTime @default(now())
+  patientId   String?
+  description String
+  income      Int      @default(0)
+  advance     Int      @default(0)
+  due         Int      @default(0)
+  expense     Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  patient Patient? @relation(fields: [patientId], references: [id])
+}
+
+model WalkIn {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String?
+  purpose   String
+  place     String?
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+}
+
+model TherapyAssignment {
+  id          String   @id @default(cuid())
+  staffId     String
+  patientId   String
+  service     String
+  startTime   DateTime
+  endTime     DateTime
+  status      String   @default("SCHEDULED")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  staff   Staff   @relation(fields: [staffId], references: [id])
+  patient Patient @relation(fields: [patientId], references: [id])
+}
+
+model Permission {
+  id                  String   @id @default(cuid())
+  staffId             String   @unique
+  canAccessLedger     Boolean  @default(false)
+  canAccessWalkIn     Boolean  @default(false)
+  canAccessAttendance Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  staff Staff @relation(fields: [staffId], references: [id])
+}
+
+
