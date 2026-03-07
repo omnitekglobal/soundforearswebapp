@@ -1,8 +1,26 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Sound For Ears – Clinic Management Web App
+
+Next.js app for clinic management (admin, staff, patient roles). Uses MySQL and Prisma.
+
+## MySQL setup
+
+1. **Create a database** on your MySQL server (e.g. in cPanel: MySQL® Databases → Create Database). Example name: `soundforears`.
+2. **Assign the user** to that database with “All privileges” (e.g. “Add User To Database”).
+3. **Configure `.env`** with your URL (password with `* ) =` must be URL-encoded: `*` → `%2A`, `)` → `%29`, `=` → `%3D`):
+   ```bash
+   DATABASE_URL="mysql://USER:PASSWORD@HOST:3306/DATABASE_NAME"
+   AUTH_SECRET="a-long-random-secret"
+   ```
+4. **Apply schema and seed**:
+   ```bash
+   npm run db:push
+   npm run db:seed
+   ```
+   Seed logins: `admin@soundforears.test` / `Admin123!`, `staff@soundforears.test` / `Staff123!`, `patient@soundforears.test` / `Patient123!`.
 
 ## Getting Started
 
-First, run the development server:
+Run the development server:
 
 ```bash
 npm run dev

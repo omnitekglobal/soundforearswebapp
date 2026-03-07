@@ -22,7 +22,7 @@ export default function SidebarNav({ items, orientation = "vertical" }) {
           (item.href !== "/" && pathname.startsWith(item.href));
 
         const baseClasses =
-          "flex items-center whitespace-nowrap rounded-full px-3 py-1.5 font-medium transition";
+          "flex items-center whitespace-nowrap rounded-full px-3 py-2.5 font-medium transition min-h-[2.75rem] sm:py-1.5 sm:min-h-0";
 
         const activeClasses = isHorizontal
           ? "bg-sky-600 text-white shadow-sm"

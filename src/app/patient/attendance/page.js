@@ -2,80 +2,113 @@ import prisma from "@/lib/prisma";
 import Card from "@/components/ui/Card";
 import DataTable from "@/components/ui/DataTable";
 import { requireRole, requireSession } from "@/lib/auth";
+import { formatDateTime } from "@/lib/format";
+import { getSkipTake, getOrderBy, getWhere } from "@/lib/tableQuery";
+import { createMyAttendance } from "./actions";
 
 export const metadata = {
   title: "Attendance – Patient",
 };
 
-export default async function PatientAttendancePage() {
+const inputClass =
+  "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500";
+
+function isToday(d) {
+  const t = new Date();
+  const x = new Date(d);
+  return (
+    x.getFullYear() === t.getFullYear() &&
+    x.getMonth() === t.getMonth() &&
+    x.getDate() === t.getDate()
+  );
+}
+
+export default async function PatientAttendancePage({ searchParams }) {
   await requireRole(["patient"]);
   const session = await requireSession();
-
   const patient = await prisma.patient.findFirst({
     where: { userId: session.userId },
   });
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const filterWhere = getWhere(searchParams, {});
+  const where = !patient
+    ? undefined
+    : filterWhere
+      ? { AND: [{ patientId: patient.id }, filterWhere] }
+      : { patientId: patient.id };
+  const { skip, take } = getSkipTake(searchParams);
+  const orderBy = getOrderBy(searchParams, ["date", "notes"], { date: "desc" });
 
-  const records = patient
-    ? await prisma.attendance.findMany({
-        where: { patientId: patient.id },
-        orderBy: { date: "desc" },
-        take: 60,
-      })
-    : [];
+  const [records, totalCount] = await Promise.all([
+    patient
+      ? prisma.attendance.findMany({
+          where,
+          orderBy,
+          skip,
+          take,
+        })
+      : [],
+    patient ? prisma.attendance.count({ where }) : 0,
+  ]);
 
   const columns = [
     {
       key: "date",
-      header: "Date",
+      header: "Date & time",
       render: (row) => {
-        const d = new Date(row.date);
-        const sameDay =
-          d.getFullYear() === today.getFullYear() &&
-          d.getMonth() === today.getMonth() &&
-          d.getDate() === today.getDate();
+        const sameDay = isToday(row.date);
         return (
           <span>
-            {d.toLocaleDateString()}
+            {formatDateTime(row.date)}
             {sameDay && (
               <span className="ml-1 rounded-full bg-emerald-50 px-1.5 py-0.5 text-xs text-emerald-700 ring-1 ring-emerald-100">
-                Today – editable
+                Today
               </span>
             )}
           </span>
         );
       },
     },
-    {
-      key: "checkIn",
-      header: "Check-in",
-      render: (row) =>
-        row.checkIn ? new Date(row.checkIn).toLocaleTimeString() : "—",
-    },
-    {
-      key: "checkOut",
-      header: "Check-out",
-      render: (row) =>
-        row.checkOut ? new Date(row.checkOut).toLocaleTimeString() : "—",
-    },
+    { key: "notes", header: "Notes" },
   ];
 
   return (
     <div className="space-y-4">
-      <Card title="Attendance">
+      <Card title="Add today's attendance">
         <p className="mb-3 text-xs text-slate-500">
-          You can only add or edit today&apos;s attendance. Past records are
-          read-only.
+          You can add today&apos;s attendance only. Records are view-only and
+          cannot be edited or deleted.
         </p>
+        <form action={createMyAttendance} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="sm:col-span-2">
+            <label className="mb-1 block text-xs font-medium text-slate-500">
+              Notes
+            </label>
+            <input name="notes" className={inputClass} />
+          </div>
+          <div className="sm:col-span-2 flex items-center gap-2">
+            <button
+              type="submit"
+              className="inline-flex h-8 shrink-0 items-center rounded-md bg-sky-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-sky-700"
+            >
+              Add attendance
+            </button>
+          </div>
+        </form>
+      </Card>
+
+      <Card title="Attendance">
         <DataTable
           columns={columns}
           data={records}
           emptyMessage="No attendance records yet."
+          basePath="/patient/attendance"
+          searchParams={searchParams}
+          totalCount={totalCount}
+          filterableColumns={[{ key: "notes", header: "Notes" }]}
+          sortableColumns={["date", "notes"]}
         />
       </Card>
     </div>
   );
 }
-

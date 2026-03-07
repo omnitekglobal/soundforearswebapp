@@ -2,8 +2,8 @@ import Link from "next/link";
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
-      <div className="w-full max-w-3xl rounded-3xl bg-white/90 px-6 py-8 shadow-lg ring-1 ring-slate-200/80 sm:px-10 sm:py-12">
+    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-3 py-6 sm:px-4 sm:py-10">
+      <div className="w-full max-w-3xl rounded-2xl bg-white/90 px-4 py-6 shadow-lg ring-1 ring-slate-200/80 sm:rounded-3xl sm:px-10 sm:py-12">
         <div className="grid gap-8 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] md:items-center">
           <div>
             <div className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-600">

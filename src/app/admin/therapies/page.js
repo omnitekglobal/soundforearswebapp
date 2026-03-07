@@ -5,74 +5,83 @@ import DataTable from "@/components/ui/DataTable";
 import { requireRole } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { getSkipTake, getOrderBy, getWhere } from "@/lib/tableQuery";
-import { createLedgerEntry, updateLedgerEntry, deleteLedgerEntry } from "./actions";
+import {
+  createTherapyAssignment,
+  updateTherapyAssignment,
+  deleteTherapyAssignment,
+} from "./actions";
 
 export const metadata = {
-  title: "Daily Ledger – Admin",
+  title: "Therapies – Admin",
 };
 
 const inputClass =
   "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500";
 
-function toInputDate(d) {
+function toInputDateTime(d) {
   if (!d) return "";
   const x = new Date(d);
-  return x.toISOString().slice(0, 10);
+  return x.toISOString().slice(0, 16);
 }
 
-export default async function AdminLedgerPage({ searchParams }) {
+export default async function AdminTherapiesPage({ searchParams }) {
   await requireRole(["admin"]);
   const editId = typeof searchParams?.edit === "string" ? searchParams.edit : null;
-  const entryToEdit = editId
-    ? await prisma.ledger.findUnique({ where: { id: editId } })
+  const assignmentToEdit = editId
+    ? await prisma.therapyAssignment.findUnique({ where: { id: editId } })
     : null;
 
   const { skip, take } = getSkipTake(searchParams);
   const where = getWhere(searchParams, {
+    staff: { type: "relation", relationKey: "staff", field: "name" },
     patient: { type: "relation", relationKey: "patient", field: "patientName" },
   });
-  const orderBy = getOrderBy(searchParams, ["date", "description", "income", "expense"], { date: "desc" });
+  const orderBy = getOrderBy(searchParams, ["startTime", "service", "status"], { startTime: "desc" });
 
-  const [entries, totalCount, patientList] = await Promise.all([
-    prisma.ledger.findMany({
+  const [assignments, totalCount, staffList, patientList] = await Promise.all([
+    prisma.therapyAssignment.findMany({
       where,
-      include: { patient: true },
+      include: { staff: true, patient: true },
       orderBy,
       skip,
       take,
     }),
-    prisma.ledger.count({ where }),
+    prisma.therapyAssignment.count({ where }),
+    prisma.staff.findMany({ orderBy: { name: "asc" } }),
     prisma.patient.findMany({ orderBy: { patientName: "asc" } }),
   ]);
 
   const columns = [
-    {
-      key: "date",
-      header: "Date",
-      render: (row) => formatDateTime(row.date),
-    },
+    { key: "staff", header: "Staff", render: (row) => row.staff?.name || "—" },
     {
       key: "patient",
       header: "Patient",
       render: (row) => row.patient?.patientName || "—",
     },
-    { key: "description", header: "Description" },
-    { key: "income", header: "Income" },
-    { key: "advance", header: "Advance" },
-    { key: "due", header: "Due" },
-    { key: "expense", header: "Expense" },
+    { key: "service", header: "Service" },
+    {
+      key: "startTime",
+      header: "Start",
+      render: (row) => formatDateTime(row.startTime),
+    },
+    {
+      key: "endTime",
+      header: "End",
+      render: (row) => formatDateTime(row.endTime),
+    },
+    { key: "status", header: "Status" },
     {
       key: "actions",
       header: "Actions",
       render: (row) => (
         <div className="flex flex-wrap gap-2">
           <Link
-            href={`/admin/ledger?edit=${row.id}`}
+            href={`/admin/therapies?edit=${row.id}`}
             className="text-sky-600 hover:underline"
           >
             Edit
           </Link>
-          <form action={deleteLedgerEntry.bind(null, row.id)} className="inline">
+          <form action={deleteTherapyAssignment.bind(null, row.id)} className="inline">
             <button type="submit" className="text-red-600 hover:underline">
               Delete
             </button>
@@ -85,11 +94,11 @@ export default async function AdminLedgerPage({ searchParams }) {
   return (
     <div className="space-y-4">
       <Card
-        title={entryToEdit ? "Edit ledger entry" : "Add ledger entry"}
+        title={assignmentToEdit ? "Edit therapy assignment" : "Add therapy assignment"}
         actions={
-          entryToEdit ? (
+          assignmentToEdit ? (
             <Link
-              href="/admin/ledger"
+              href="/admin/therapies"
               className="text-sm text-slate-500 hover:text-slate-700"
             >
               Cancel
@@ -99,33 +108,39 @@ export default async function AdminLedgerPage({ searchParams }) {
       >
         <form
           action={
-            entryToEdit
-              ? updateLedgerEntry.bind(null, entryToEdit.id)
-              : createLedgerEntry
+            assignmentToEdit
+              ? updateTherapyAssignment.bind(null, assignmentToEdit.id)
+              : createTherapyAssignment
           }
           className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
         >
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-500">
-              Date
+              Staff *
             </label>
-            <input
-              type="date"
-              name="date"
+            <select
+              name="staffId"
               className={inputClass}
-              defaultValue={
-                entryToEdit ? toInputDate(entryToEdit.date) : toInputDate(new Date())
-              }
-            />
+              defaultValue={assignmentToEdit?.staffId ?? ""}
+              required
+            >
+              <option value="">—</option>
+              {staffList.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-500">
-              Patient
+              Patient *
             </label>
             <select
               name="patientId"
               className={inputClass}
-              defaultValue={entryToEdit?.patientId ?? ""}
+              defaultValue={assignmentToEdit?.patientId ?? ""}
+              required
             >
               <option value="">—</option>
               {patientList.map((p) => (
@@ -135,63 +150,57 @@ export default async function AdminLedgerPage({ searchParams }) {
               ))}
             </select>
           </div>
-          <div className="sm:col-span-2">
+          <div>
             <label className="mb-1 block text-xs font-medium text-slate-500">
-              Description *
+              Service *
             </label>
             <input
-              name="description"
+              name="service"
               className={inputClass}
-              defaultValue={entryToEdit?.description ?? ""}
+              defaultValue={assignmentToEdit?.service ?? ""}
               required
             />
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-500">
-              Income
+              Status
+            </label>
+            <select
+              name="status"
+              className={inputClass}
+              defaultValue={assignmentToEdit?.status ?? "SCHEDULED"}
+            >
+              <option value="SCHEDULED">Scheduled</option>
+              <option value="COMPLETED">Completed</option>
+              <option value="CANCELLED">Cancelled</option>
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-500">
+              Start time *
             </label>
             <input
-              type="number"
-              name="income"
+              type="datetime-local"
+              name="startTime"
               className={inputClass}
-              defaultValue={entryToEdit?.income ?? 0}
-              min={0}
+              defaultValue={
+                assignmentToEdit ? toInputDateTime(assignmentToEdit.startTime) : ""
+              }
+              required
             />
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-500">
-              Advance
+              End time *
             </label>
             <input
-              type="number"
-              name="advance"
+              type="datetime-local"
+              name="endTime"
               className={inputClass}
-              defaultValue={entryToEdit?.advance ?? 0}
-              min={0}
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">
-              Due
-            </label>
-            <input
-              type="number"
-              name="due"
-              className={inputClass}
-              defaultValue={entryToEdit?.due ?? 0}
-              min={0}
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">
-              Expense
-            </label>
-            <input
-              type="number"
-              name="expense"
-              className={inputClass}
-              defaultValue={entryToEdit?.expense ?? 0}
-              min={0}
+              defaultValue={
+                assignmentToEdit ? toInputDateTime(assignmentToEdit.endTime) : ""
+              }
+              required
             />
           </div>
           <div className="sm:col-span-2 flex items-center gap-2">
@@ -199,25 +208,27 @@ export default async function AdminLedgerPage({ searchParams }) {
               type="submit"
               className="inline-flex h-8 shrink-0 items-center rounded-md bg-sky-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-sky-700"
             >
-              {entryToEdit ? "Update" : "Add"} entry
+              {assignmentToEdit ? "Update" : "Add"} assignment
             </button>
           </div>
         </form>
       </Card>
 
-      <Card title="Daily Ledger">
+      <Card title="Therapy assignments">
         <DataTable
           columns={columns}
-          data={entries}
-          emptyMessage="No ledger entries yet."
-          basePath="/admin/ledger"
+          data={assignments}
+          emptyMessage="No therapy assignments yet."
+          basePath="/admin/therapies"
           searchParams={searchParams}
           totalCount={totalCount}
           filterableColumns={[
-            { key: "description", header: "Description" },
+            { key: "staff", header: "Staff" },
             { key: "patient", header: "Patient" },
+            { key: "service", header: "Service" },
+            { key: "status", header: "Status" },
           ]}
-          sortableColumns={["date", "description", "income", "expense"]}
+          sortableColumns={["startTime", "service", "status"]}
         />
       </Card>
     </div>

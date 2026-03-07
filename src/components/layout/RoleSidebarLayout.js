@@ -1,4 +1,5 @@
 import SidebarNav from "./SidebarNav";
+import { logoutAction } from "@/app/(auth)/logout/actions";
 
 const navByRole = {
   admin: [
@@ -6,6 +7,7 @@ const navByRole = {
     { label: "Patients", href: "/admin/patients" },
     { label: "Staff", href: "/admin/staff" },
     { label: "Attendance", href: "/admin/attendance" },
+    { label: "Therapies", href: "/admin/therapies" },
     { label: "Ledger", href: "/admin/ledger" },
     { label: "Walk-ins", href: "/admin/walkins" },
   ],
@@ -36,25 +38,33 @@ export default function RoleSidebarLayout({ role, children }) {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Mobile header */}
-      <header className="flex items-center justify-between border-b border-slate-200 bg-white/80 px-4 py-3 shadow-sm lg:hidden">
-        <div>
-          <div className="text-xs font-semibold uppercase tracking-wide text-sky-600">
+      <header className="flex min-h-[3.5rem] items-center justify-between gap-2 border-b border-slate-200 bg-white/80 px-3 py-2.5 shadow-sm sm:px-4 sm:py-3 lg:hidden">
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-xs font-semibold uppercase tracking-wide text-sky-600">
             Sound For Ears
           </div>
-          <div className="mt-0.5 text-sm font-medium text-slate-900">
+          <div className="truncate text-sm font-medium text-slate-900">
             {roleLabel}
           </div>
         </div>
+        <form action={logoutAction} className="shrink-0">
+          <button
+            type="submit"
+            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 active:bg-slate-100 min-h-[2.5rem] sm:py-1.5"
+          >
+            Log out
+          </button>
+        </form>
       </header>
 
       {/* Mobile nav */}
       <div className="border-b border-slate-200 bg-white px-2 py-2 lg:hidden">
-        <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1">
+        <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-0.5 pt-0.5">
           <SidebarNav items={navItems} orientation="horizontal" />
         </div>
       </div>
 
-      <div className="mx-auto flex max-w-6xl gap-6 px-4 py-6 lg:px-8 lg:py-8">
+      <div className="mx-auto flex max-w-[64rem] flex-col gap-4 px-3 py-4 sm:px-4 sm:py-6 lg:flex-row lg:gap-6 lg:px-8 lg:py-8">
         {/* Desktop sidebar */}
         <aside className="hidden w-64 flex-none border-r border-slate-200 bg-white/80 px-4 py-6 shadow-sm lg:block">
           <div className="mb-6">
@@ -66,11 +76,21 @@ export default function RoleSidebarLayout({ role, children }) {
             </div>
           </div>
           <SidebarNav items={navItems} orientation="vertical" />
+          <div className="mt-6 border-t border-slate-200 pt-4">
+            <form action={logoutAction}>
+              <button
+                type="submit"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+              >
+                Log out
+              </button>
+            </form>
+          </div>
         </aside>
 
         {/* Main content */}
-        <main className="flex-1">
-          <div className="space-y-4">{children}</div>
+        <main className="min-w-0 flex-1">
+          <div className="space-y-4 overflow-x-hidden">{children}</div>
         </main>
       </div>
     </div>

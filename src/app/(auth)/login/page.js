@@ -11,8 +11,8 @@ export default function LoginPage({ searchParams }) {
       : null;
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
-      <div className="w-full max-w-md rounded-3xl bg-white/90 px-6 py-8 shadow-lg ring-1 ring-slate-200/80 sm:px-8 sm:py-10">
+    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-3 py-6 sm:px-4 sm:py-10">
+      <div className="w-full max-w-md rounded-2xl bg-white/90 px-4 py-6 shadow-lg ring-1 ring-slate-200/80 sm:rounded-3xl sm:px-8 sm:py-10">
         <div className="mb-6 text-center">
           <div className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-600">
             Sound For Ears
