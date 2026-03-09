@@ -28,12 +28,5 @@ jobs:
             echo "🐳 Rebuilding and restarting containers..."
             docker compose down
             docker compose up -d --build
-
-            echo "🗄️ Running migrations inside container..."
-            docker compose exec frankenphp php artisan migrate --force
-
-            echo "🧹 Clearing and caching config..."
-            docker compose exec frankenphp php artisan optimize:clear
-            
             
             echo "✅ Deployment complete "
