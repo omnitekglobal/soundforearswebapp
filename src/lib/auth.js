@@ -22,9 +22,13 @@ export async function createSession(user) {
     .sign(getSecretKey());
 
   const cookieStore = await cookies();
+  const secureFlag =
+    process.env.COOKIE_SECURE != null
+      ? process.env.COOKIE_SECURE === "true"
+      : process.env.NODE_ENV === "production";
   cookieStore.set(SESSION_COOKIE_NAME, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: secureFlag,
     sameSite: "lax",
     path: "/",
     maxAge: SESSION_MAX_AGE,
