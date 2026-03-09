@@ -2,6 +2,7 @@ import Link from "next/link";
 import prisma from "@/lib/prisma";
 import Card from "@/components/ui/Card";
 import DataTable from "@/components/ui/DataTable";
+import DeleteButton from "@/components/ui/DeleteButton";
 import { requireRole } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { getSkipTake, getOrderBy, getWhere } from "@/lib/tableQuery";
@@ -22,15 +23,27 @@ function toInputDate(d) {
 
 export default async function AdminWalkinsPage({ searchParams }) {
   await requireRole(["admin"]);
-  const editId = typeof searchParams?.edit === "string" ? searchParams.edit : null;
+  const params = searchParams != null && typeof searchParams.then === "function" ? await searchParams : (searchParams ?? {});
+  const editId = typeof params.edit === "string" ? params.edit : null;
   const walkInToEdit = editId
     ? await prisma.walkIn.findUnique({ where: { id: editId } })
     : null;
-
-  const walkins = await prisma.walkIn.findMany({
-    orderBy: { date: "desc" },
-    take: 200,
+  const { skip, take } = getSkipTake(params);
+  const where = getWhere(params, {
+    name: {},
+    purpose: {},
   });
+  const orderBy = getOrderBy(params, ["date", "name", "purpose"], { date: "desc" });
+
+  const [walkins, totalCount] = await Promise.all([
+    prisma.walkIn.findMany({
+      where,
+      orderBy,
+      skip,
+      take,
+    }),
+    prisma.walkIn.count({ where }),
+  ]);
 
   const columns = [
     { key: "name", header: "Name" },
@@ -53,11 +66,9 @@ export default async function AdminWalkinsPage({ searchParams }) {
           >
             Edit
           </Link>
-          <form action={deleteWalkIn.bind(null, row.id)} className="inline">
-            <button type="submit" className="text-red-600 hover:underline">
-              Delete
-            </button>
-          </form>
+          <DeleteButton action={deleteWalkIn.bind(null, row.id)}>
+            Delete
+          </DeleteButton>
         </div>
       ),
     },
@@ -156,7 +167,7 @@ export default async function AdminWalkinsPage({ searchParams }) {
           data={walkins}
           emptyMessage="No walk-ins recorded yet."
           basePath="/admin/walkins"
-          searchParams={searchParams}
+          searchParams={params}
           totalCount={totalCount}
           filterableColumns={[
             { key: "name", header: "Name" },

@@ -35,18 +35,22 @@ model Staff {
 }
 
 model Patient {
-  id        String   @id @default(cuid())
-  userId    String?  @unique
-  patientName String
-  childName   String?
-  age       Int
-  sex       String
-  services  String
-  amount    Int
-  advance   Int       @default(0)
-  due       Int       @default(0)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id            String    @id @default(cuid())
+  userId        String?   @unique
+  patientName   String
+  childName     String?
+  age           Int
+  sex           String
+  services      String
+  amount        Int
+  advance       Int       @default(0)
+  due           Int       @default(0)
+  noOfSessions  Int?
+  date          DateTime? // registration / joining date
+  phone         String?
+  email         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   user       User?      @relation(fields: [userId], references: [id])
   attendance Attendance[]
@@ -74,10 +78,10 @@ model Ledger {
   date        DateTime @default(now())
   patientId   String?
   description String
-  income      Int      @default(0)
+  cr          Int      @default(0)  // credit
   advance     Int      @default(0)
   due         Int      @default(0)
-  expense     Int      @default(0)
+  dr          Int      @default(0)  // debit
   createdAt   DateTime @default(now())
 
   patient Patient? @relation(fields: [patientId], references: [id])

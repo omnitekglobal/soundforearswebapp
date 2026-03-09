@@ -2,6 +2,7 @@ import Link from "next/link";
 import prisma from "@/lib/prisma";
 import Card from "@/components/ui/Card";
 import DataTable from "@/components/ui/DataTable";
+import DeleteButton from "@/components/ui/DeleteButton";
 import { requireRole, requireSession } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { getSkipTake, getOrderBy, getWhere } from "@/lib/tableQuery";
@@ -40,14 +41,15 @@ export default async function StaffWalkinsPage({ searchParams }) {
     );
   }
 
-  const editId = typeof searchParams?.edit === "string" ? searchParams.edit : null;
+  const params = searchParams != null && typeof searchParams.then === "function" ? await searchParams : (searchParams ?? {});
+  const editId = typeof params.edit === "string" ? params.edit : null;
   const walkInToEdit = editId
     ? await prisma.walkIn.findUnique({ where: { id: editId } })
     : null;
 
-  const { skip, take } = getSkipTake(searchParams);
-  const where = getWhere(searchParams, {});
-  const orderBy = getOrderBy(searchParams, ["date", "name", "purpose"], { date: "desc" });
+  const { skip, take } = getSkipTake(params);
+  const where = getWhere(params, {});
+  const orderBy = getOrderBy(params, ["date", "name", "purpose"], { date: "desc" });
 
   const [walkins, totalCount] = await Promise.all([
     prisma.walkIn.findMany({ where, orderBy, skip, take }),
@@ -75,11 +77,9 @@ export default async function StaffWalkinsPage({ searchParams }) {
           >
             Edit
           </Link>
-          <form action={deleteWalkIn.bind(null, row.id)} className="inline">
-            <button type="submit" className="text-red-600 hover:underline">
-              Delete
-            </button>
-          </form>
+          <DeleteButton action={deleteWalkIn.bind(null, row.id)}>
+            Delete
+          </DeleteButton>
         </div>
       ),
     },
@@ -178,7 +178,7 @@ export default async function StaffWalkinsPage({ searchParams }) {
           data={walkins}
           emptyMessage="No walk-ins recorded yet."
           basePath="/staff/walkins"
-          searchParams={searchParams}
+          searchParams={params}
           totalCount={totalCount}
           filterableColumns={[
             { key: "name", header: "Name" },

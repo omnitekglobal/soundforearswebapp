@@ -2,14 +2,11 @@ import Link from "next/link";
 import prisma from "@/lib/prisma";
 import Card from "@/components/ui/Card";
 import DataTable from "@/components/ui/DataTable";
+import Alert from "@/components/ui/Alert";
 import { requireRole, requireSession } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { getSkipTake, getOrderBy, getWhere } from "@/lib/tableQuery";
-import {
-  createMyAttendance,
-  updateMyAttendance,
-  deleteMyAttendance,
-} from "./actions";
+import { createMyAttendance, updateMyAttendance } from "./actions";
 
 export const metadata = {
   title: "My Attendance – Staff",
@@ -21,19 +18,22 @@ const inputClass =
 
 export default async function StaffAttendancePage({ searchParams }) {
   await requireRole(["staff"]);
+  const params = searchParams != null && typeof searchParams.then === "function" ? await searchParams : (searchParams ?? {});
+  const error =
+    typeof params.error === "string" ? decodeURIComponent(params.error) : null;
   const session = await requireSession();
   const staff = await prisma.staff.findFirst({
     where: { userId: session.userId },
   });
 
-  const editId = typeof searchParams?.edit === "string" ? searchParams.edit : null;
+  const editId = typeof params.edit === "string" ? params.edit : null;
   const recordToEdit = editId
     ? await prisma.attendance.findFirst({
         where: { id: editId, staffId: staff?.id },
       })
     : null;
 
-  const filterWhere = getWhere(searchParams, {
+  const filterWhere = getWhere(params, {
     patient: { type: "relation", relationKey: "patient", field: "patientName" },
   });
   const where = !staff
@@ -41,21 +41,19 @@ export default async function StaffAttendancePage({ searchParams }) {
     : filterWhere
       ? { AND: [{ staffId: staff.id }, filterWhere] }
       : { staffId: staff.id };
-  const { skip, take } = getSkipTake(searchParams);
-  const orderBy = getOrderBy(searchParams, ["date", "notes"], { date: "desc" });
+  const { skip, take } = getSkipTake(params);
+  const orderBy = getOrderBy(params, ["date", "notes"], { date: "desc" });
 
-  const [records, totalCount, patientList] = await Promise.all([
+  const [records, totalCount] = await Promise.all([
     staff
       ? prisma.attendance.findMany({
           where,
-          include: { patient: true },
           orderBy,
           skip,
           take,
         })
       : [],
     staff ? prisma.attendance.count({ where }) : 0,
-    prisma.patient.findMany({ orderBy: { patientName: "asc" } }),
   ]);
 
   const columns = [
@@ -64,35 +62,29 @@ export default async function StaffAttendancePage({ searchParams }) {
       header: "Date & time",
       render: (row) => formatDateTime(row.date),
     },
-    {
-      key: "patient",
-      header: "Patient",
-      render: (row) => row.patient?.patientName || "—",
-    },
     { key: "notes", header: "Notes" },
+    // No delete option here; only admins can delete attendance from admin panel
     {
       key: "actions",
       header: "Actions",
       render: (row) => (
-        <div className="flex flex-wrap gap-2">
-          <Link
-            href={`/staff/attendance?edit=${row.id}`}
-            className="text-sky-600 hover:underline"
-          >
-            Edit
-          </Link>
-          <form action={deleteMyAttendance.bind(null, row.id)} className="inline">
-            <button type="submit" className="text-red-600 hover:underline">
-              Delete
-            </button>
-          </form>
-        </div>
+        <Link
+          href={`/staff/attendance?edit=${row.id}`}
+          className="text-sky-600 hover:underline"
+        >
+          Edit
+        </Link>
       ),
     },
   ];
 
   return (
     <div className="space-y-4">
+      {error && (
+        <Alert type="warning" title="Attendance already recorded">
+          {error}
+        </Alert>
+      )}
       <Card
         title={recordToEdit ? "Edit attendance" : "Add attendance"}
         actions={
@@ -105,7 +97,7 @@ export default async function StaffAttendancePage({ searchParams }) {
             </Link>
           ) : null
         }
-      >
+        >
         <form
           action={
             recordToEdit
@@ -120,23 +112,6 @@ export default async function StaffAttendancePage({ searchParams }) {
               <p className="text-sm text-slate-700">{formatDateTime(recordToEdit.date)}</p>
             </div>
           )}
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">
-              Patient
-            </label>
-            <select
-              name="patientId"
-              className={inputClass}
-              defaultValue={recordToEdit?.patientId ?? ""}
-            >
-              <option value="">—</option>
-              {patientList.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.patientName}
-                </option>
-              ))}
-            </select>
-          </div>
           <div className="sm:col-span-2">
             <label className="mb-1 block text-xs font-medium text-slate-500">
               Notes
@@ -164,9 +139,9 @@ export default async function StaffAttendancePage({ searchParams }) {
           data={records}
           emptyMessage="No attendance records yet."
           basePath="/staff/attendance"
-          searchParams={searchParams}
+          searchParams={params}
           totalCount={totalCount}
-          filterableColumns={[{ key: "patient", header: "Patient" }, { key: "notes", header: "Notes" }]}
+          filterableColumns={[{ key: "notes", header: "Notes" }]}
           sortableColumns={["date", "notes"]}
         />
       </Card>

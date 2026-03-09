@@ -5,6 +5,10 @@ import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { requireRole, requireSession } from "@/lib/auth";
 import { getNowInClinicTz, parseTimeTodayInClinicTz } from "@/lib/datetime";
+import {
+  createAutoSessionDebitForAttendance,
+  deleteAutoSessionDebitForAttendance,
+} from "@/lib/billing";
 
 function isToday(d) {
   const t = new Date();
@@ -23,7 +27,27 @@ export async function createMyAttendance(formData) {
   const patientId = await getCurrentPatientId();
   const now = getNowInClinicTz();
 
-  await prisma.attendance.create({
+  const startOfDay = new Date(now);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(now);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  const existingCount = await prisma.attendance.count({
+    where: {
+      patientId,
+      date: {
+        gte: startOfDay,
+        lte: endOfDay,
+      },
+    },
+  });
+
+  if (existingCount > 0) {
+    const error = encodeURIComponent("You have already added attendance for today.");
+    redirect(`/patient/attendance?error=${error}`);
+  }
+
+  const attendance = await prisma.attendance.create({
     data: {
       date: now,
       patientId,
@@ -32,6 +56,8 @@ export async function createMyAttendance(formData) {
       notes: formData.get("notes")?.toString().trim() || null,
     },
   });
+
+  await createAutoSessionDebitForAttendance(attendance);
   revalidatePath("/patient/attendance");
   redirect("/patient/attendance");
 }
@@ -44,7 +70,7 @@ export async function updateMyAttendance(id, formData) {
   const recordDate = new Date(existing.date);
   if (!isToday(recordDate)) return { error: "You can only edit today's attendance." };
 
-  await prisma.attendance.update({
+  const updated = await prisma.attendance.update({
     where: { id },
     data: {
       checkIn: parseTimeTodayInClinicTz(formData.get("checkIn")) || null,
@@ -52,17 +78,19 @@ export async function updateMyAttendance(id, formData) {
       notes: formData.get("notes")?.toString().trim() || null,
     },
   });
+
+  // Keep automatic session debit entry in sync (no-op if already correct)
+  await deleteAutoSessionDebitForAttendance(id);
+  await createAutoSessionDebitForAttendance(updated);
   revalidatePath("/patient/attendance");
   redirect("/patient/attendance");
 }
 
 export async function deleteMyAttendance(id) {
-  await requireRole(["patient"]);
-  const patientId = await getCurrentPatientId();
-  const existing = await prisma.attendance.findFirst({ where: { id, patientId } });
-  if (!existing) return { error: "Record not found or access denied." };
-  if (!isToday(new Date(existing.date))) return { error: "You can only delete today's attendance." };
+  await requireRole(["admin"]);
+  if (!id) return { error: "Invalid record." };
+  await deleteAutoSessionDebitForAttendance(id);
   await prisma.attendance.delete({ where: { id } });
-  revalidatePath("/patient/attendance");
+  revalidatePath("/admin/attendance");
   return { ok: true };
 }

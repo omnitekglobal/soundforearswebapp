@@ -79,13 +79,13 @@ export default function DataTable({
       )}
 
       {(!data || data.length === 0) && totalCount === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-5 text-center text-sm text-slate-500 sm:px-4 sm:py-6">
+        <div className="w-full rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-5 text-center text-sm text-slate-500 sm:px-4 sm:py-6">
           {emptyMessage}
         </div>
       ) : (
         <>
-          <div className="-mx-2 overflow-x-auto rounded-xl border border-slate-200 bg-white sm:mx-0">
-            <table className="min-w-[40rem] divide-y divide-slate-200 text-xs sm:text-sm">
+          <div className="w-full overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <table className="min-w-full table-auto divide-y divide-slate-200 text-xs sm:text-sm">
               <thead className="bg-slate-50/80">
                 <tr>
                   {columns.map((column) => {

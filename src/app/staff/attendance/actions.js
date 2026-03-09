@@ -16,12 +16,33 @@ async function getCurrentStaffId() {
 export async function createMyAttendance(formData) {
   await requireRole(["staff"]);
   const staffId = await getCurrentStaffId();
+  const now = getNowInClinicTz();
+
+  const startOfDay = new Date(now);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(now);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  const existingCount = await prisma.attendance.count({
+    where: {
+      staffId,
+      date: {
+        gte: startOfDay,
+        lte: endOfDay,
+      },
+    },
+  });
+
+  if (existingCount > 0) {
+    const error = encodeURIComponent("You have already added your attendance for today.");
+    redirect(`/staff/attendance?error=${error}`);
+  }
 
   await prisma.attendance.create({
     data: {
-      date: getNowInClinicTz(),
+      date: now,
       staffId,
-      patientId: formData.get("patientId")?.toString().trim() || null,
+      patientId: null,
       checkIn: null,
       checkOut: null,
       notes: formData.get("notes")?.toString().trim() || null,
@@ -40,7 +61,6 @@ export async function updateMyAttendance(id, formData) {
   await prisma.attendance.update({
     where: { id },
     data: {
-      patientId: formData.get("patientId")?.toString().trim() || null,
       notes: formData.get("notes")?.toString().trim() || null,
     },
   });
@@ -49,11 +69,9 @@ export async function updateMyAttendance(id, formData) {
 }
 
 export async function deleteMyAttendance(id) {
-  await requireRole(["staff"]);
-  const staffId = await getCurrentStaffId();
-  const existing = await prisma.attendance.findFirst({ where: { id, staffId } });
-  if (!existing) return { error: "Record not found or access denied." };
+  await requireRole(["admin"]);
+  if (!id) return { error: "Invalid record." };
   await prisma.attendance.delete({ where: { id } });
-  revalidatePath("/staff/attendance");
+  revalidatePath("/admin/attendance");
   return { ok: true };
 }

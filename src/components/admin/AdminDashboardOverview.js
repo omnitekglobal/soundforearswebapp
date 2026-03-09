@@ -32,6 +32,8 @@ export default async function AdminDashboardOverview() {
     ledgerMonth,
     therapiesToday,
     recentLedger,
+    patientsForBilling,
+    attendanceByPatient,
   ] = await Promise.all([
     prisma.patient.count(),
     prisma.staff.count({ where: { isActive: true } }),
@@ -46,7 +48,7 @@ export default async function AdminDashboardOverview() {
     }),
     prisma.ledger.aggregate({
       where: { date: { gte: todayStart, lte: todayEnd } },
-      _sum: { income: true, expense: true, advance: true },
+      _sum: { cr: true, dr: true, advance: true },
     }),
     prisma.ledger.aggregate({
       where: {
@@ -54,7 +56,7 @@ export default async function AdminDashboardOverview() {
           gte: startOfDay(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)),
         },
       },
-      _sum: { income: true, expense: true },
+      _sum: { cr: true, dr: true },
     }),
     prisma.therapyAssignment.count({
       where: {
@@ -67,12 +69,43 @@ export default async function AdminDashboardOverview() {
       orderBy: { date: "desc" },
       include: { patient: true },
     }),
+    prisma.patient.findMany({
+      select: { id: true, amount: true, noOfSessions: true },
+    }),
+    prisma.attendance.groupBy({
+      by: ["patientId"],
+      where: { patientId: { not: null } },
+      _count: { _all: true },
+    }),
   ]);
 
-  const todayIncome = ledgerToday._sum.income ?? 0;
-  const todayExpense = ledgerToday._sum.expense ?? 0;
-  const monthIncome = ledgerMonth._sum.income ?? 0;
-  const monthExpense = ledgerMonth._sum.expense ?? 0;
+  const todayCr = ledgerToday._sum.cr ?? 0;
+  const todayDr = ledgerToday._sum.dr ?? 0;
+  const monthCr = ledgerMonth._sum.cr ?? 0;
+  const monthDr = ledgerMonth._sum.dr ?? 0;
+
+  const attendanceCountMap = new Map();
+  for (const group of attendanceByPatient) {
+    if (!group.patientId) continue;
+    attendanceCountMap.set(group.patientId, group._count._all);
+  }
+
+  let totalPackageAmount = 0;
+  let totalRemainingAmount = 0;
+  for (const p of patientsForBilling) {
+    if (!p.noOfSessions || p.noOfSessions <= 0) continue;
+    if (!p.amount || p.amount <= 0) continue;
+
+    totalPackageAmount += p.amount;
+    const perSession = Math.round(p.amount / p.noOfSessions);
+    if (!perSession) continue;
+
+    const usedSessions = attendanceCountMap.get(p.id) ?? 0;
+    const remainingSessions = Math.max(0, p.noOfSessions - usedSessions);
+    const remainingAmount = Math.max(0, perSession * remainingSessions);
+
+    totalRemainingAmount += remainingAmount;
+  }
 
   return (
     <div className="space-y-6">
@@ -97,13 +130,13 @@ export default async function AdminDashboardOverview() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          label="Today's income"
-          value={`₹${todayIncome.toLocaleString()}`}
+          label="Today's CR"
+          value={`₹${todayCr.toLocaleString()}`}
           sub="From ledger"
         />
         <StatCard
-          label="Today's expense"
-          value={`₹${todayExpense.toLocaleString()}`}
+          label="Today's DR"
+          value={`₹${todayDr.toLocaleString()}`}
           sub="From ledger"
         />
         <StatCard
@@ -112,9 +145,22 @@ export default async function AdminDashboardOverview() {
           sub="Therapy assignments"
         />
         <StatCard
-          label="30-day income"
-          value={`₹${monthIncome.toLocaleString()}`}
-          sub={`Expense: ₹${monthExpense.toLocaleString()}`}
+          label="30-day CR"
+          value={`₹${monthCr.toLocaleString()}`}
+          sub={`DR: ₹${monthDr.toLocaleString()}`}
+        />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          label="Total package amount"
+          value={`₹${totalPackageAmount.toLocaleString()}`}
+          sub="All patients"
+        />
+        <StatCard
+          label="Remaining package amount"
+          value={`₹${totalRemainingAmount.toLocaleString()}`}
+          sub="Based on sessions"
         />
       </div>
 
@@ -187,7 +233,7 @@ export default async function AdminDashboardOverview() {
                     )}
                   </span>
                   <span className="shrink-0 text-xs font-medium text-slate-600">
-                    ₹{entry.income - entry.expense}
+                    ₹{entry.cr - entry.dr}
                   </span>
                 </li>
               ))}

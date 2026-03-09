@@ -64,7 +64,7 @@ export default function RoleSidebarLayout({ role, children }) {
         </div>
       </div>
 
-      <div className="mx-auto flex max-w-[64rem] flex-col gap-4 px-3 py-4 sm:px-4 sm:py-6 lg:flex-row lg:gap-6 lg:px-8 lg:py-8">
+      <div className="flex flex-col gap-4 px-3 py-4 sm:px-4 sm:py-6 lg:flex-row lg:gap-6 lg:px-8 lg:py-8">
         {/* Desktop sidebar */}
         <aside className="hidden w-64 flex-none border-r border-slate-200 bg-white/80 px-4 py-6 shadow-sm lg:block">
           <div className="mb-6">

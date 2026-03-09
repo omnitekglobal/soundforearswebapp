@@ -39,10 +39,10 @@ export async function createLedgerEntry(formData) {
       date: parseDate(formData.get("date")),
       patientId: formData.get("patientId")?.toString().trim() || null,
       description,
-      income: toInt(formData.get("income")),
+      cr: toInt(formData.get("cr")),
       advance: toInt(formData.get("advance")),
       due: toInt(formData.get("due")),
-      expense: toInt(formData.get("expense")),
+      dr: toInt(formData.get("dr")),
     },
   });
   revalidatePath("/staff/ledger");
@@ -63,10 +63,10 @@ export async function updateLedgerEntry(id, formData) {
       date: parseDate(formData.get("date")),
       patientId: formData.get("patientId")?.toString().trim() || null,
       description,
-      income: toInt(formData.get("income")),
+      cr: toInt(formData.get("cr")),
       advance: toInt(formData.get("advance")),
       due: toInt(formData.get("due")),
-      expense: toInt(formData.get("expense")),
+      dr: toInt(formData.get("dr")),
     },
   });
   revalidatePath("/staff/ledger");

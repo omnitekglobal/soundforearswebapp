@@ -94,6 +94,18 @@ export async function deleteStaff(id) {
   const staff = await prisma.staff.findUnique({ where: { id } });
   if (!staff) return { error: "Staff not found." };
 
+  const [attendanceCount, therapyCount] = await Promise.all([
+    prisma.attendance.count({ where: { staffId: id } }),
+    prisma.therapyAssignment.count({ where: { staffId: id } }),
+  ]);
+
+  if (attendanceCount > 0 || therapyCount > 0) {
+    const error = encodeURIComponent(
+      "Staff member has related attendance or therapy assignments. Please reassign or remove those records first."
+    );
+    redirect(`/admin/staff?error=${error}`);
+  }
+
   await prisma.permission.deleteMany({ where: { staffId: id } });
   await prisma.staff.delete({ where: { id } });
   await prisma.user.delete({ where: { id: staff.userId } });

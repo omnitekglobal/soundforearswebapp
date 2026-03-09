@@ -5,13 +5,17 @@ import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { requireRole } from "@/lib/auth";
 import { parseDateTimeInClinicTz } from "@/lib/datetime";
+import {
+  createAutoSessionDebitForAttendance,
+  deleteAutoSessionDebitForAttendance,
+} from "@/lib/billing";
 
 export async function createAttendance(formData) {
   await requireRole(["admin"]);
   const date = parseDateTimeInClinicTz(formData.get("date"));
   if (!date) return { error: "Date & time is required." };
 
-  await prisma.attendance.create({
+  const attendance = await prisma.attendance.create({
     data: {
       date,
       staffId: formData.get("staffId")?.toString().trim() || null,
@@ -21,6 +25,8 @@ export async function createAttendance(formData) {
       notes: formData.get("notes")?.toString().trim() || null,
     },
   });
+
+  await createAutoSessionDebitForAttendance(attendance);
   revalidatePath("/admin/attendance");
   return { ok: true };
 }
@@ -31,7 +37,7 @@ export async function updateAttendance(id, formData) {
   const date = parseDateTimeInClinicTz(formData.get("date"));
   if (!date) return { error: "Date & time is required." };
 
-  await prisma.attendance.update({
+  const updated = await prisma.attendance.update({
     where: { id },
     data: {
       date,
@@ -42,6 +48,10 @@ export async function updateAttendance(id, formData) {
       notes: formData.get("notes")?.toString().trim() || null,
     },
   });
+
+  // Re-sync automatic session debit entry for this attendance
+  await deleteAutoSessionDebitForAttendance(id);
+  await createAutoSessionDebitForAttendance(updated);
   revalidatePath("/admin/attendance");
   redirect("/admin/attendance");
 }
@@ -49,6 +59,8 @@ export async function updateAttendance(id, formData) {
 export async function deleteAttendance(id) {
   await requireRole(["admin"]);
   if (!id) return { error: "Invalid record." };
+
+  await deleteAutoSessionDebitForAttendance(id);
   await prisma.attendance.delete({ where: { id } });
   revalidatePath("/admin/attendance");
   return { ok: true };

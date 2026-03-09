@@ -2,6 +2,7 @@ import Link from "next/link";
 import prisma from "@/lib/prisma";
 import Card from "@/components/ui/Card";
 import DataTable from "@/components/ui/DataTable";
+import DeleteButton from "@/components/ui/DeleteButton";
 import { requireRole, requireSession } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { getSkipTake, getOrderBy, getWhere } from "@/lib/tableQuery";
@@ -26,19 +27,20 @@ function toInputDateTime(d) {
 
 export default async function StaffTherapiesPage({ searchParams }) {
   await requireRole(["staff"]);
+  const params = searchParams != null && typeof searchParams.then === "function" ? await searchParams : (searchParams ?? {});
   const session = await requireSession();
   const staff = await prisma.staff.findFirst({
     where: { userId: session.userId },
   });
 
-  const editId = typeof searchParams?.edit === "string" ? searchParams.edit : null;
+  const editId = typeof params.edit === "string" ? params.edit : null;
   const assignmentToEdit = editId
     ? await prisma.therapyAssignment.findFirst({
         where: { id: editId, staffId: staff?.id },
       })
     : null;
 
-  const filterWhere = getWhere(searchParams, {
+  const filterWhere = getWhere(params, {
     patient: { type: "relation", relationKey: "patient", field: "patientName" },
   });
   const where = !staff
@@ -46,8 +48,8 @@ export default async function StaffTherapiesPage({ searchParams }) {
     : filterWhere
       ? { AND: [{ staffId: staff.id }, filterWhere] }
       : { staffId: staff.id };
-  const { skip, take } = getSkipTake(searchParams);
-  const orderBy = getOrderBy(searchParams, ["startTime", "service", "status"], { startTime: "desc" });
+  const { skip, take } = getSkipTake(params);
+  const orderBy = getOrderBy(params, ["startTime", "service", "status"], { startTime: "desc" });
 
   const [assignments, totalCount, patientList] = await Promise.all([
     staff
@@ -92,11 +94,9 @@ export default async function StaffTherapiesPage({ searchParams }) {
           >
             Edit
           </Link>
-          <form action={deleteMyTherapyAssignment.bind(null, row.id)} className="inline">
-            <button type="submit" className="text-red-600 hover:underline">
-              Delete
-            </button>
-          </form>
+          <DeleteButton action={deleteMyTherapyAssignment.bind(null, row.id)}>
+            Delete
+          </DeleteButton>
         </div>
       ),
     },
@@ -213,7 +213,7 @@ export default async function StaffTherapiesPage({ searchParams }) {
           data={assignments}
           emptyMessage="No therapy assignments yet."
           basePath="/staff/therapies"
-          searchParams={searchParams}
+          searchParams={params}
           totalCount={totalCount}
           filterableColumns={[
             { key: "patient", header: "Patient" },

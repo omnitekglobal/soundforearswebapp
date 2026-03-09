@@ -4,10 +4,11 @@ export const metadata = {
   title: "Login – Sound For Ears",
 };
 
-export default function LoginPage({ searchParams }) {
+export default async function LoginPage({ searchParams }) {
+  const params = searchParams != null && typeof searchParams.then === "function" ? await searchParams : (searchParams ?? {});
   const error =
-    typeof searchParams?.error === "string"
-      ? decodeURIComponent(searchParams.error)
+    typeof params.error === "string"
+      ? decodeURIComponent(params.error)
       : null;
 
   return (

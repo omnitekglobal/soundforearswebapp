@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import Card from "@/components/ui/Card";
 import DataTable from "@/components/ui/DataTable";
+import Alert from "@/components/ui/Alert";
 import { requireRole, requireSession } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { getSkipTake, getOrderBy, getWhere } from "@/lib/tableQuery";
@@ -25,19 +26,22 @@ function isToday(d) {
 
 export default async function PatientAttendancePage({ searchParams }) {
   await requireRole(["patient"]);
+  const params = searchParams != null && typeof searchParams.then === "function" ? await searchParams : (searchParams ?? {});
+  const error =
+    typeof params.error === "string" ? decodeURIComponent(params.error) : null;
   const session = await requireSession();
   const patient = await prisma.patient.findFirst({
     where: { userId: session.userId },
   });
 
-  const filterWhere = getWhere(searchParams, {});
+  const filterWhere = getWhere(params, {});
   const where = !patient
     ? undefined
     : filterWhere
       ? { AND: [{ patientId: patient.id }, filterWhere] }
       : { patientId: patient.id };
-  const { skip, take } = getSkipTake(searchParams);
-  const orderBy = getOrderBy(searchParams, ["date", "notes"], { date: "desc" });
+  const { skip, take } = getSkipTake(params);
+  const orderBy = getOrderBy(params, ["date", "notes"], { date: "desc" });
 
   const [records, totalCount] = await Promise.all([
     patient
@@ -50,6 +54,12 @@ export default async function PatientAttendancePage({ searchParams }) {
       : [],
     patient ? prisma.attendance.count({ where }) : 0,
   ]);
+
+  const totalSessions = patient?.noOfSessions ?? null;
+  const perSession =
+    totalSessions && totalSessions > 0 && patient.amount > 0
+      ? Math.round(patient.amount / totalSessions)
+      : null;
 
   const columns = [
     {
@@ -70,10 +80,20 @@ export default async function PatientAttendancePage({ searchParams }) {
       },
     },
     { key: "notes", header: "Notes" },
+    {
+      key: "debited",
+      header: "Debited",
+      render: () => (perSession != null ? `₹${perSession}` : "—"),
+    },
   ];
 
   return (
     <div className="space-y-4">
+      {error && (
+        <Alert type="warning" title="Attendance already recorded">
+          {error}
+        </Alert>
+      )}
       <Card title="Add today's attendance">
         <p className="mb-3 text-xs text-slate-500">
           You can add today&apos;s attendance only. Records are view-only and
@@ -103,7 +123,7 @@ export default async function PatientAttendancePage({ searchParams }) {
           data={records}
           emptyMessage="No attendance records yet."
           basePath="/patient/attendance"
-          searchParams={searchParams}
+          searchParams={params}
           totalCount={totalCount}
           filterableColumns={[{ key: "notes", header: "Notes" }]}
           sortableColumns={["date", "notes"]}

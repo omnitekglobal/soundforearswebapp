@@ -63,6 +63,19 @@ export default async function PatientDashboardPage() {
       }),
     ]);
 
+  const totalSessions = patient.noOfSessions ?? null;
+  const perSession =
+    totalSessions && totalSessions > 0 && patient.amount > 0
+      ? Math.round(patient.amount / totalSessions)
+      : null;
+  const usedSessions = attendanceCount;
+  const remainingSessions =
+    totalSessions != null ? Math.max(0, totalSessions - usedSessions) : null;
+  const remainingAmount =
+    perSession != null && remainingSessions != null
+      ? Math.max(0, perSession * remainingSessions)
+      : null;
+
   return (
     <div className="space-y-6">
       <div>
@@ -127,6 +140,24 @@ export default async function PatientDashboardPage() {
                 ₹{patient.amount} / ₹{patient.advance} / ₹{patient.due}
               </dd>
             </div>
+            <div>
+              <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Sessions (total / used / remaining)
+              </dt>
+              <dd className="mt-0.5">
+                {totalSessions != null ? totalSessions : "—"} / {usedSessions} /{" "}
+                {remainingSessions != null ? remainingSessions : "—"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Per session / Remaining amount
+              </dt>
+              <dd className="mt-0.5">
+                {perSession != null ? `₹${perSession}` : "—"} /{" "}
+                {remainingAmount != null ? `₹${remainingAmount}` : "—"}
+              </dd>
+            </div>
           </dl>
         </Card>
 
@@ -147,9 +178,14 @@ export default async function PatientDashboardPage() {
                   key={r.id}
                   className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2 last:border-0 last:pb-0"
                 >
-                  <span className="text-sm text-slate-700">
-                    {formatDateTime(r.date)}
-                  </span>
+                  <div className="flex flex-col text-sm text-slate-700">
+                    <span>{formatDateTime(r.date)}</span>
+                    {perSession != null && (
+                      <span className="text-xs text-slate-500">
+                        Debited: ₹{perSession}
+                      </span>
+                    )}
+                  </div>
                   {r.notes && (
                     <span className="truncate text-xs text-slate-500 max-w-[12rem]">
                       {r.notes}

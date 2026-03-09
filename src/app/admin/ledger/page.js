@@ -2,6 +2,7 @@ import Link from "next/link";
 import prisma from "@/lib/prisma";
 import Card from "@/components/ui/Card";
 import DataTable from "@/components/ui/DataTable";
+import DeleteButton from "@/components/ui/DeleteButton";
 import { requireRole } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { getSkipTake, getOrderBy, getWhere } from "@/lib/tableQuery";
@@ -22,16 +23,17 @@ function toInputDate(d) {
 
 export default async function AdminLedgerPage({ searchParams }) {
   await requireRole(["admin"]);
-  const editId = typeof searchParams?.edit === "string" ? searchParams.edit : null;
+  const params = searchParams != null && typeof searchParams.then === "function" ? await searchParams : (searchParams ?? {});
+  const editId = typeof params.edit === "string" ? params.edit : null;
   const entryToEdit = editId
     ? await prisma.ledger.findUnique({ where: { id: editId } })
     : null;
 
-  const { skip, take } = getSkipTake(searchParams);
-  const where = getWhere(searchParams, {
+  const { skip, take } = getSkipTake(params);
+  const where = getWhere(params, {
     patient: { type: "relation", relationKey: "patient", field: "patientName" },
   });
-  const orderBy = getOrderBy(searchParams, ["date", "description", "income", "expense"], { date: "desc" });
+  const orderBy = getOrderBy(params, ["date", "description", "cr", "dr"], { date: "desc" });
 
   const [entries, totalCount, patientList] = await Promise.all([
     prisma.ledger.findMany({
@@ -57,10 +59,10 @@ export default async function AdminLedgerPage({ searchParams }) {
       render: (row) => row.patient?.patientName || "—",
     },
     { key: "description", header: "Description" },
-    { key: "income", header: "Income" },
+    { key: "cr", header: "CR" },
     { key: "advance", header: "Advance" },
     { key: "due", header: "Due" },
-    { key: "expense", header: "Expense" },
+    { key: "dr", header: "DR" },
     {
       key: "actions",
       header: "Actions",
@@ -72,11 +74,9 @@ export default async function AdminLedgerPage({ searchParams }) {
           >
             Edit
           </Link>
-          <form action={deleteLedgerEntry.bind(null, row.id)} className="inline">
-            <button type="submit" className="text-red-600 hover:underline">
-              Delete
-            </button>
-          </form>
+          <DeleteButton action={deleteLedgerEntry.bind(null, row.id)}>
+            Delete
+          </DeleteButton>
         </div>
       ),
     },
@@ -148,13 +148,13 @@ export default async function AdminLedgerPage({ searchParams }) {
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-500">
-              Income
+              CR
             </label>
             <input
               type="number"
-              name="income"
+              name="cr"
               className={inputClass}
-              defaultValue={entryToEdit?.income ?? 0}
+              defaultValue={entryToEdit?.cr ?? 0}
               min={0}
             />
           </div>
@@ -184,13 +184,13 @@ export default async function AdminLedgerPage({ searchParams }) {
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-500">
-              Expense
+              DR
             </label>
             <input
               type="number"
-              name="expense"
+              name="dr"
               className={inputClass}
-              defaultValue={entryToEdit?.expense ?? 0}
+              defaultValue={entryToEdit?.dr ?? 0}
               min={0}
             />
           </div>
@@ -211,13 +211,13 @@ export default async function AdminLedgerPage({ searchParams }) {
           data={entries}
           emptyMessage="No ledger entries yet."
           basePath="/admin/ledger"
-          searchParams={searchParams}
+          searchParams={params}
           totalCount={totalCount}
           filterableColumns={[
             { key: "description", header: "Description" },
             { key: "patient", header: "Patient" },
           ]}
-          sortableColumns={["date", "description", "income", "expense"]}
+          sortableColumns={["date", "description", "cr", "dr"]}
         />
       </Card>
     </div>

@@ -2,6 +2,8 @@ import Link from "next/link";
 import prisma from "@/lib/prisma";
 import Card from "@/components/ui/Card";
 import DataTable from "@/components/ui/DataTable";
+import Alert from "@/components/ui/Alert";
+import DeleteButton from "@/components/ui/DeleteButton";
 import { requireRole } from "@/lib/auth";
 import { getSkipTake, getOrderBy, getWhere } from "@/lib/tableQuery";
 import { createStaff, updateStaff, deleteStaff } from "./actions";
@@ -18,7 +20,10 @@ const DEFAULT_ORDER = { createdAt: "desc" };
 
 export default async function AdminStaffPage({ searchParams }) {
   await requireRole(["admin"]);
-  const editId = typeof searchParams?.edit === "string" ? searchParams.edit : null;
+  const params = searchParams != null && typeof searchParams.then === "function" ? await searchParams : (searchParams ?? {});
+  const error =
+    typeof params.error === "string" ? decodeURIComponent(params.error) : null;
+  const editId = typeof params.edit === "string" ? params.edit : null;
   const staffToEdit = editId
     ? await prisma.staff.findUnique({
         where: { id: editId },
@@ -26,9 +31,9 @@ export default async function AdminStaffPage({ searchParams }) {
       })
     : null;
 
-  const { skip, take } = getSkipTake(searchParams);
-  const where = getWhere(searchParams, {});
-  const orderBy = getOrderBy(searchParams, STAFF_SORT_KEYS, DEFAULT_ORDER);
+  const { skip, take } = getSkipTake(params);
+  const where = getWhere(params, {});
+  const orderBy = getOrderBy(params, STAFF_SORT_KEYS, DEFAULT_ORDER);
 
   const [staff, totalCount] = await Promise.all([
     prisma.staff.findMany({ where, include: { permissions: true }, orderBy, skip, take }),
@@ -88,11 +93,12 @@ export default async function AdminStaffPage({ searchParams }) {
           >
             Edit
           </Link>
-          <form action={deleteStaff.bind(null, row.id)} className="inline">
-            <button type="submit" className="text-red-600 hover:underline">
-              Delete
-            </button>
-          </form>
+          <DeleteButton
+            action={deleteStaff.bind(null, row.id)}
+            confirmMessage="Are you sure you want to delete this staff member? This cannot be undone."
+          >
+            Delete
+          </DeleteButton>
         </div>
       ),
     },
@@ -100,6 +106,11 @@ export default async function AdminStaffPage({ searchParams }) {
 
   return (
     <div className="space-y-4">
+      {error && (
+        <Alert type="error" title="Cannot delete staff">
+          {error}
+        </Alert>
+      )}
       <Card
         title={staffToEdit ? "Edit staff" : "Add staff"}
         actions={
@@ -223,7 +234,7 @@ export default async function AdminStaffPage({ searchParams }) {
           data={staff}
           emptyMessage="No staff members added yet."
           basePath="/admin/staff"
-          searchParams={searchParams}
+          searchParams={params}
           totalCount={totalCount}
           filterableColumns={[{ key: "name", header: "Name" }, { key: "phone", header: "Phone" }]}
           sortableColumns={STAFF_SORT_KEYS}

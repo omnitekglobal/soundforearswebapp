@@ -2,6 +2,7 @@ import Link from "next/link";
 import prisma from "@/lib/prisma";
 import Card from "@/components/ui/Card";
 import DataTable from "@/components/ui/DataTable";
+import DeleteButton from "@/components/ui/DeleteButton";
 import { requireRole } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { toDateTimeLocalValue } from "@/lib/datetime";
@@ -18,17 +19,18 @@ const inputClass =
 
 export default async function AdminAttendancePage({ searchParams }) {
   await requireRole(["admin"]);
-  const editId = typeof searchParams?.edit === "string" ? searchParams.edit : null;
+  const params = searchParams != null && typeof searchParams.then === "function" ? await searchParams : (searchParams ?? {});
+  const editId = typeof params.edit === "string" ? params.edit : null;
   const recordToEdit = editId
     ? await prisma.attendance.findUnique({ where: { id: editId } })
     : null;
 
-  const { skip, take } = getSkipTake(searchParams);
-  const where = getWhere(searchParams, {
+  const { skip, take } = getSkipTake(params);
+  const where = getWhere(params, {
     staff: { type: "relation", relationKey: "staff", field: "name" },
     patient: { type: "relation", relationKey: "patient", field: "patientName" },
   });
-  const orderBy = getOrderBy(searchParams, ["date", "notes"], { date: "desc" });
+  const orderBy = getOrderBy(params, ["date", "notes"], { date: "desc" });
 
   const [records, totalCount, staffList, patientList] = await Promise.all([
     prisma.attendance.findMany({
@@ -50,7 +52,23 @@ export default async function AdminAttendancePage({ searchParams }) {
       render: (row) => formatDateTime(row.date),
     },
     { key: "staff", header: "Staff", render: (row) => row.staff?.name || "—" },
-    { key: "patient", header: "Patient", render: (row) => row.patient?.patientName || "—" },
+    {
+      key: "patient",
+      header: "Patient",
+      render: (row) => row.patient?.patientName || "—",
+    },
+    {
+      key: "debited",
+      header: "Debited",
+      render: (row) => {
+        const p = row.patient;
+        if (!p || !p.noOfSessions || p.noOfSessions <= 0 || !p.amount || p.amount <= 0) {
+          return "—";
+        }
+        const perSession = Math.round(p.amount / p.noOfSessions);
+        return `₹${perSession}`;
+      },
+    },
     { key: "notes", header: "Notes" },
     {
       key: "actions",
@@ -63,11 +81,9 @@ export default async function AdminAttendancePage({ searchParams }) {
           >
             Edit
           </Link>
-          <form action={deleteAttendance.bind(null, row.id)} className="inline">
-            <button type="submit" className="text-red-600 hover:underline">
-              Delete
-            </button>
-          </form>
+          <DeleteButton action={deleteAttendance.bind(null, row.id)}>
+            Delete
+          </DeleteButton>
         </div>
       ),
     },
@@ -169,7 +185,7 @@ export default async function AdminAttendancePage({ searchParams }) {
           data={records}
           emptyMessage="No attendance records yet."
           basePath="/admin/attendance"
-          searchParams={searchParams}
+          searchParams={params}
           totalCount={totalCount}
           filterableColumns={[
             { key: "staff", header: "Staff" },
