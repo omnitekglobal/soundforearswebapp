@@ -110,7 +110,7 @@ export default async function AdminDashboardOverview() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-lg font-semibold text-slate-900">Dashboard</h1>
+        <h1 className="text-lg font-semibold text-slate-900">Dashboard 1</h1>
         <p className="mt-0.5 text-sm text-slate-500">
           Clinic overview and today&apos;s snapshot
         </p>
