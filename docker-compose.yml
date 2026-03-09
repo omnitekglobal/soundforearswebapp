@@ -11,5 +11,6 @@ services:
       # DATABASE_URL comes from .env and should point to your external DB.
       NODE_ENV: production
     ports:
-      - "3000:3000"
+      # HostPort:ContainerPort – change host port if needed
+      - "3001:3000"
 
