@@ -65,15 +65,22 @@ export default async function PatientDashboardPage() {
 
   const totalSessions = patient.noOfSessions ?? null;
   const perSession =
-    totalSessions && totalSessions > 0 && patient.amount > 0
-      ? Math.round(patient.amount / totalSessions)
-      : null;
+    patient.perSessionCharge && patient.perSessionCharge > 0
+      ? patient.perSessionCharge
+      : totalSessions && totalSessions > 0 && patient.amount > 0
+        ? Math.round(patient.amount / totalSessions)
+        : null;
   const usedSessions = attendanceCount;
+  // Allow negative when sessions used exceed package (negative balance)
   const remainingSessions =
-    totalSessions != null ? Math.max(0, totalSessions - usedSessions) : null;
+    totalSessions != null ? totalSessions - usedSessions : null;
   const remainingAmount =
-    perSession != null && remainingSessions != null
-      ? Math.max(0, perSession * remainingSessions)
+    perSession != null
+      ? patient.amount && patient.amount > 0
+        ? patient.amount - perSession * usedSessions
+        : remainingSessions != null
+          ? perSession * remainingSessions
+          : null
       : null;
 
   return (

@@ -59,15 +59,22 @@ export default async function AdminPatientsPage({ searchParams }) {
   const patientsWithBilling = patients.map((p) => {
     const totalSessions = p.noOfSessions ?? null;
     const perSession =
-      totalSessions && totalSessions > 0 && p.amount > 0
-        ? Math.round(p.amount / totalSessions)
-        : null;
+      p.perSessionCharge && p.perSessionCharge > 0
+        ? p.perSessionCharge
+        : totalSessions && totalSessions > 0 && p.amount > 0
+          ? Math.round(p.amount / totalSessions)
+          : null;
     const usedSessions = attendanceCountMap.get(p.id) ?? 0;
+    // Allow negative when sessions used exceed package (negative balance)
     const remainingSessions =
-      totalSessions != null ? Math.max(0, totalSessions - usedSessions) : null;
+      totalSessions != null ? totalSessions - usedSessions : null;
     const remainingAmount =
-      perSession != null && remainingSessions != null
-        ? Math.max(0, perSession * remainingSessions)
+      perSession != null
+        ? p.amount && p.amount > 0
+          ? p.amount - perSession * usedSessions
+          : remainingSessions != null
+            ? perSession * remainingSessions
+            : null
         : null;
 
     return {
@@ -158,23 +165,13 @@ export default async function AdminPatientsPage({ searchParams }) {
         >
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-500">
-              Patient name *
+              Patient name / Child name *
             </label>
             <input
               name="patientName"
               className={inputClass}
-              defaultValue={patientToEdit?.patientName ?? ""}
+              defaultValue={patientToEdit?.patientName ?? patientToEdit?.childName ?? ""}
               required
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">
-              Child name
-            </label>
-            <input
-              name="childName"
-              className={inputClass}
-              defaultValue={patientToEdit?.childName ?? ""}
             />
           </div>
           <div>
@@ -284,6 +281,19 @@ export default async function AdminPatientsPage({ searchParams }) {
               className={inputClass}
               defaultValue={patientToEdit?.amount ?? 0}
               min={0}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-500">
+              Per session charge (optional)
+            </label>
+            <input
+              type="number"
+              name="perSessionCharge"
+              className={inputClass}
+              defaultValue={patientToEdit?.perSessionCharge ?? ""}
+              min={0}
+              placeholder="If set, used instead of Amount / Sessions"
             />
           </div>
           <div>

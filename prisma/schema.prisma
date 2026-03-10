@@ -43,6 +43,7 @@ model Patient {
   sex           String
   services      String
   amount        Int
+  perSessionCharge Int?
   advance       Int       @default(0)
   due           Int       @default(0)
   noOfSessions  Int?

@@ -94,15 +94,25 @@ export default async function AdminDashboardOverview() {
   let totalRemainingAmount = 0;
   for (const p of patientsForBilling) {
     if (!p.noOfSessions || p.noOfSessions <= 0) continue;
-    if (!p.amount || p.amount <= 0) continue;
-
-    totalPackageAmount += p.amount;
-    const perSession = Math.round(p.amount / p.noOfSessions);
+    const perSession =
+      p.perSessionCharge && p.perSessionCharge > 0
+        ? p.perSessionCharge
+        : p.amount && p.amount > 0
+          ? Math.round(p.amount / p.noOfSessions)
+          : null;
     if (!perSession) continue;
 
+    if (p.amount && p.amount > 0) {
+      totalPackageAmount += p.amount;
+    }
+
     const usedSessions = attendanceCountMap.get(p.id) ?? 0;
-    const remainingSessions = Math.max(0, p.noOfSessions - usedSessions);
-    const remainingAmount = Math.max(0, perSession * remainingSessions);
+    // Allow negative balance when sessions used exceed package
+    const remainingSessions = p.noOfSessions - usedSessions;
+    const remainingAmount =
+      p.amount && p.amount > 0
+        ? p.amount - perSession * usedSessions
+        : perSession * remainingSessions;
 
     totalRemainingAmount += remainingAmount;
   }

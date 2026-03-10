@@ -27,7 +27,10 @@ export async function createPatient(formData) {
   const email = formData.get("email")?.toString().trim() || null;
   const password = formData.get("password")?.toString() || null;
   if (password && !email) {
-    return { error: "Email is required when setting a portal password." };
+    const error = encodeURIComponent(
+      "Email is required when setting a portal password."
+    );
+    redirect(`/admin/patients?error=${error}`);
   }
 
   const amount = toInt(formData.get("amount"));
@@ -36,11 +39,12 @@ export async function createPatient(formData) {
   const dateVal = parseDateInClinicTz(formData.get("date"));
   const patientData = {
     patientName,
-    childName: formData.get("childName")?.toString().trim() || null,
+    childName: null,
     age: toInt(formData.get("age")),
     sex: formData.get("sex")?.toString().trim() || "OTHER",
     services: formData.get("services")?.toString().trim() || "",
     amount,
+    perSessionCharge: toIntOrNull(formData.get("perSessionCharge")),
     advance,
     due,
     noOfSessions: toIntOrNull(formData.get("noOfSessions")),
@@ -50,27 +54,43 @@ export async function createPatient(formData) {
   };
 
   let patient;
-  if (email && password) {
-    const existing = await prisma.user.findUnique({ where: { email } });
-    if (existing) return { error: "A user with this email already exists." };
+  try {
+    if (email && password) {
+      const existing = await prisma.user.findUnique({ where: { email } });
+      if (existing) {
+        const error = encodeURIComponent(
+          "A user with this email already exists."
+        );
+        redirect(`/admin/patients?error=${error}`);
+      }
 
-    const passwordHash = await bcrypt.hash(password, 10);
-    const user = await prisma.user.create({
-      data: {
-        email,
-        passwordHash,
-        role: "patient",
-        patient: {
-          create: patientData,
+      const passwordHash = await bcrypt.hash(password, 10);
+      const user = await prisma.user.create({
+        data: {
+          email,
+          passwordHash,
+          role: "patient",
+          patient: {
+            create: patientData,
+          },
         },
-      },
-      include: { patient: true },
-    });
-    patient = user.patient;
-  } else {
-    patient = await prisma.patient.create({
-      data: patientData,
-    });
+        include: { patient: true },
+      });
+      patient = user.patient;
+    } else {
+      patient = await prisma.patient.create({
+        data: patientData,
+      });
+    }
+  } catch (err) {
+    const message =
+      email &&
+      typeof err?.code === "string" &&
+      (err.code === "P2002" || err.code === "P2003")
+        ? "A user with this email already exists."
+        : "Could not create patient. Please try again.";
+    const error = encodeURIComponent(message);
+    redirect(`/admin/patients?error=${error}`);
   }
 
   await prisma.ledger.create({
@@ -101,11 +121,12 @@ export async function updatePatient(id, formData) {
     where: { id },
     data: {
       patientName,
-      childName: formData.get("childName")?.toString().trim() || null,
+      childName: null,
       age: toInt(formData.get("age")),
       sex: formData.get("sex")?.toString().trim() || "OTHER",
       services: formData.get("services")?.toString().trim() || "",
       amount: toInt(formData.get("amount")),
+      perSessionCharge: toIntOrNull(formData.get("perSessionCharge")),
       advance: toInt(formData.get("advance")),
       due: toInt(formData.get("due")),
       noOfSessions: toIntOrNull(formData.get("noOfSessions")),

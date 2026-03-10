@@ -62,10 +62,16 @@ export default async function AdminAttendancePage({ searchParams }) {
       header: "Debited",
       render: (row) => {
         const p = row.patient;
-        if (!p || !p.noOfSessions || p.noOfSessions <= 0 || !p.amount || p.amount <= 0) {
+        if (!p || !p.noOfSessions || p.noOfSessions <= 0) {
           return "—";
         }
-        const perSession = Math.round(p.amount / p.noOfSessions);
+        const perSession =
+          p.perSessionCharge && p.perSessionCharge > 0
+            ? p.perSessionCharge
+            : p.amount && p.amount > 0
+              ? Math.round(p.amount / p.noOfSessions)
+              : null;
+        if (!perSession) return "—";
         return `₹${perSession}`;
       },
     },

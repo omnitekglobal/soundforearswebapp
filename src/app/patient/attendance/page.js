@@ -57,9 +57,11 @@ export default async function PatientAttendancePage({ searchParams }) {
 
   const totalSessions = patient?.noOfSessions ?? null;
   const perSession =
-    totalSessions && totalSessions > 0 && patient.amount > 0
-      ? Math.round(patient.amount / totalSessions)
-      : null;
+    patient?.perSessionCharge && patient.perSessionCharge > 0
+      ? patient.perSessionCharge
+      : totalSessions && totalSessions > 0 && patient.amount > 0
+        ? Math.round(patient.amount / totalSessions)
+        : null;
 
   const columns = [
     {
