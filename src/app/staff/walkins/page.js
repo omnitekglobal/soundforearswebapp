@@ -71,12 +71,12 @@ export default async function StaffWalkinsPage({ searchParams }) {
       header: "Actions",
       render: (row) => (
         <div className="flex flex-wrap gap-2">
-          <Link
+          <a
             href={`/staff/walkins?edit=${row.id}`}
             className="text-sky-600 hover:underline"
           >
             Edit
-          </Link>
+          </a>
           <DeleteButton action={deleteWalkIn.bind(null, row.id)}>
             Delete
           </DeleteButton>
@@ -91,12 +91,12 @@ export default async function StaffWalkinsPage({ searchParams }) {
         title={walkInToEdit ? "Edit walk-in" : "Add walk-in"}
         actions={
           walkInToEdit ? (
-            <Link
+            <a
               href="/staff/walkins"
               className="text-sm text-slate-500 hover:text-slate-700"
             >
               Cancel
-            </Link>
+            </a>
           ) : null
         }
       >

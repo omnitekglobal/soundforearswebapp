@@ -87,12 +87,12 @@ export default async function AdminStaffPage({ searchParams }) {
       header: "Actions",
       render: (row) => (
         <div className="flex flex-wrap gap-2">
-          <Link
+          <a
             href={`/admin/staff?edit=${row.id}`}
             className="text-sky-600 hover:underline"
           >
             Edit
-          </Link>
+          </a>
           <DeleteButton
             action={deleteStaff.bind(null, row.id)}
             confirmMessage="Are you sure you want to delete this staff member? This cannot be undone."
@@ -115,12 +115,12 @@ export default async function AdminStaffPage({ searchParams }) {
         title={staffToEdit ? "Edit staff" : "Add staff"}
         actions={
           staffToEdit ? (
-            <Link
+            <a
               href="/admin/staff"
               className="text-sm text-slate-500 hover:text-slate-700"
             >
               Cancel
-            </Link>
+            </a>
           ) : null
         }
       >

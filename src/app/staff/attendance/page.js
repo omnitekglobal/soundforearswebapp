@@ -68,12 +68,12 @@ export default async function StaffAttendancePage({ searchParams }) {
       key: "actions",
       header: "Actions",
       render: (row) => (
-        <Link
+        <a
           href={`/staff/attendance?edit=${row.id}`}
           className="text-sky-600 hover:underline"
         >
           Edit
-        </Link>
+        </a>
       ),
     },
   ];
@@ -89,12 +89,12 @@ export default async function StaffAttendancePage({ searchParams }) {
         title={recordToEdit ? "Edit attendance" : "Add attendance"}
         actions={
           recordToEdit ? (
-            <Link
+            <a
               href="/staff/attendance"
               className="text-sm text-slate-500 hover:text-slate-700"
             >
               Cancel
-            </Link>
+            </a>
           ) : null
         }
         >

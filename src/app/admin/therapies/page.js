@@ -77,12 +77,12 @@ export default async function AdminTherapiesPage({ searchParams }) {
       header: "Actions",
       render: (row) => (
         <div className="flex flex-wrap gap-2">
-          <Link
+          <a
             href={`/admin/therapies?edit=${row.id}`}
             className="text-sky-600 hover:underline"
           >
             Edit
-          </Link>
+          </a>
           <DeleteButton action={deleteTherapyAssignment.bind(null, row.id)}>
             Delete
           </DeleteButton>
@@ -97,12 +97,12 @@ export default async function AdminTherapiesPage({ searchParams }) {
         title={assignmentToEdit ? "Edit therapy assignment" : "Add therapy assignment"}
         actions={
           assignmentToEdit ? (
-            <Link
+            <a
               href="/admin/therapies"
               className="text-sm text-slate-500 hover:text-slate-700"
             >
               Cancel
-            </Link>
+            </a>
           ) : null
         }
       >
