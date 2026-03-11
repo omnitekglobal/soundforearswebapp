@@ -122,12 +122,12 @@ export default async function AdminPatientsPage({ searchParams }) {
       header: "Actions",
       render: (row) => (
         <div className="flex flex-wrap gap-2">
-          <Link
+          <a
             href={`/admin/patients?edit=${row.id}`}
             className="text-sky-600 hover:underline"
           >
             Edit
-          </Link>
+          </a>
           <DeleteButton
             action={deletePatient.bind(null, row.id)}
             confirmMessage="Are you sure you want to delete this patient? This cannot be undone."
@@ -150,12 +150,12 @@ export default async function AdminPatientsPage({ searchParams }) {
         title={patientToEdit ? "Edit patient" : "Add patient"}
         actions={
           patientToEdit ? (
-            <Link
+            <a
               href="/admin/patients"
               className="text-sm text-slate-500 hover:text-slate-700"
             >
               Cancel
-            </Link>
+            </a>
           ) : null
         }
       >

@@ -22,7 +22,10 @@ export default async function AdminAttendancePage({ searchParams }) {
   const params = searchParams != null && typeof searchParams.then === "function" ? await searchParams : (searchParams ?? {});
   const editId = typeof params.edit === "string" ? params.edit : null;
   const recordToEdit = editId
-    ? await prisma.attendance.findUnique({ where: { id: editId } })
+    ? await prisma.attendance.findUnique({
+        where: { id: editId },
+        include: { staff: true, patient: true },
+      })
     : null;
 
   const { skip, take } = getSkipTake(params);
@@ -81,12 +84,12 @@ export default async function AdminAttendancePage({ searchParams }) {
       header: "Actions",
       render: (row) => (
         <div className="flex flex-wrap gap-2">
-          <Link
+          <a
             href={`/admin/attendance?edit=${row.id}`}
             className="text-sky-600 hover:underline"
           >
             Edit
-          </Link>
+          </a>
           <DeleteButton action={deleteAttendance.bind(null, row.id)}>
             Delete
           </DeleteButton>
@@ -101,12 +104,12 @@ export default async function AdminAttendancePage({ searchParams }) {
         title={recordToEdit ? "Edit attendance" : "Add attendance"}
         actions={
           recordToEdit ? (
-            <Link
+            <a
               href="/admin/attendance"
               className="text-sm text-slate-500 hover:text-slate-700"
             >
               Cancel
-            </Link>
+            </a>
           ) : null
         }
       >
@@ -137,7 +140,9 @@ export default async function AdminAttendancePage({ searchParams }) {
             <select
               name="staffId"
               className={inputClass}
-              defaultValue={recordToEdit?.staffId ?? ""}
+              defaultValue={
+                recordToEdit?.staff?.id ?? recordToEdit?.staffId ?? ""
+              }
             >
               <option value="">—</option>
               {staffList.map((s) => (
@@ -154,7 +159,9 @@ export default async function AdminAttendancePage({ searchParams }) {
             <select
               name="patientId"
               className={inputClass}
-              defaultValue={recordToEdit?.patientId ?? ""}
+              defaultValue={
+                recordToEdit?.patient?.id ?? recordToEdit?.patientId ?? ""
+              }
             >
               <option value="">—</option>
               {patientList.map((p) => (
