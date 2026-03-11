@@ -8,6 +8,8 @@ const navByRole = {
     { label: "Staff", href: "/admin/staff" },
     { label: "Attendance", href: "/admin/attendance" },
     { label: "Therapies", href: "/admin/therapies" },
+    { label: "Sales", href: "/admin/ledger/sales" },
+    { label: "Payouts", href: "/admin/ledger/payouts" },
     { label: "Ledger", href: "/admin/ledger" },
     { label: "Walk-ins", href: "/admin/walkins" },
   ],
@@ -21,6 +23,7 @@ const navByRole = {
   patient: [
     { label: "Dashboard", href: "/patient/dashboard" },
     { label: "Attendance", href: "/patient/attendance" },
+    { label: "Wallet", href: "/patient/wallet" },
   ],
 };
 

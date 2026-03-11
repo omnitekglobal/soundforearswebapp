@@ -38,6 +38,48 @@ export async function createLedgerEntry(formData) {
   return { ok: true };
 }
 
+export async function createSaleEntry(formData) {
+  await requireRole(["admin"]);
+  const description = formData.get("description")?.toString().trim();
+  if (!description) return { error: "Description is required." };
+
+  await prisma.ledger.create({
+    data: {
+      date: parseDate(formData.get("date")),
+      patientId: formData.get("patientId")?.toString().trim() || null,
+      description,
+      cr: toInt(formData.get("cr")),
+      advance: 0,
+      due: 0,
+      dr: 0,
+    },
+  });
+  revalidatePath("/admin/ledger");
+  revalidatePath("/admin/ledger/sales");
+  return { ok: true };
+}
+
+export async function createPayoutEntry(formData) {
+  await requireRole(["admin"]);
+  const description = formData.get("description")?.toString().trim();
+  if (!description) return { error: "Description is required." };
+
+  await prisma.ledger.create({
+    data: {
+      date: parseDate(formData.get("date")),
+      patientId: formData.get("patientId")?.toString().trim() || null,
+      description,
+      cr: 0,
+      advance: 0,
+      due: 0,
+      dr: toInt(formData.get("dr")),
+    },
+  });
+  revalidatePath("/admin/ledger");
+  revalidatePath("/admin/ledger/payouts");
+  return { ok: true };
+}
+
 export async function updateLedgerEntry(id, formData) {
   await requireRole(["admin"]);
   if (!id) return { error: "Invalid entry." };

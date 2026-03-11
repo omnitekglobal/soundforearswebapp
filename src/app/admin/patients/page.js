@@ -128,6 +128,12 @@ export default async function AdminPatientsPage({ searchParams }) {
           >
             Edit
           </a>
+          <Link
+            href={`/admin/patients/${row.id}/wallet`}
+            className="text-sky-600 hover:underline"
+          >
+            Wallet
+          </Link>
           <DeleteButton
             action={deletePatient.bind(null, row.id)}
             confirmMessage="Are you sure you want to delete this patient? This cannot be undone."
@@ -142,7 +148,7 @@ export default async function AdminPatientsPage({ searchParams }) {
   return (
     <div className="space-y-4">
       {error && (
-        <Alert type="error" title="Cannot delete patient">
+        <Alert type="error" title="Patient error">
           {error}
         </Alert>
       )}

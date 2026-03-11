@@ -83,12 +83,25 @@ export async function createPatient(formData) {
       });
     }
   } catch (err) {
-    const message =
+    console.error("Error creating patient", err);
+
+    let message = "Could not create patient. Please try again.";
+
+    const rawMessage = typeof err?.message === "string" ? err.message : "";
+
+    if (
       email &&
       typeof err?.code === "string" &&
       (err.code === "P2002" || err.code === "P2003")
-        ? "A user with this email already exists."
-        : "Could not create patient. Please try again.";
+    ) {
+      message = "A user with this email already exists.";
+    } else if (rawMessage && !rawMessage.startsWith("NEXT_REDIRECT")) {
+      // Surface a more specific Prisma / DB error when available,
+      // but avoid leaking Next.js internal redirect marker / URL blob.
+      const existsMsg = "A user with this email already exists.";
+      message = rawMessage.includes(existsMsg) ? existsMsg : rawMessage;
+    }
+
     const error = encodeURIComponent(message);
     redirect(`/admin/patients?error=${error}`);
   }

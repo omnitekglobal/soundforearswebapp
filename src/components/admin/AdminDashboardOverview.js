@@ -135,17 +135,17 @@ export default async function AdminDashboardOverview() {
           value={todayAttendance}
           sub={`${monthAttendance} in last 30 days`}
         />
-        <StatCard label="Today's walk-ins" value={todayWalkIns} sub="Visitors" />
+        <StatCard label="Today's patients" value={todayWalkIns} sub="Visitors" />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          label="Today's CR"
+          label="Today's sell"
           value={`₹${todayCr.toLocaleString()}`}
           sub="From ledger"
         />
         <StatCard
-          label="Today's DR"
+          label="Today's expense"
           value={`₹${todayDr.toLocaleString()}`}
           sub="From ledger"
         />

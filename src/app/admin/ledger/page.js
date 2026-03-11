@@ -1,4 +1,3 @@
-import Link from "next/link";
 import prisma from "@/lib/prisma";
 import Card from "@/components/ui/Card";
 import DataTable from "@/components/ui/DataTable";
@@ -6,7 +5,7 @@ import DeleteButton from "@/components/ui/DeleteButton";
 import { requireRole } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { getSkipTake, getOrderBy, getWhere } from "@/lib/tableQuery";
-import { createLedgerEntry, updateLedgerEntry, deleteLedgerEntry } from "./actions";
+import { deleteLedgerEntry } from "./actions";
 
 export const metadata = {
   title: "Daily Ledger – Admin",
@@ -24,10 +23,6 @@ function toInputDate(d) {
 export default async function AdminLedgerPage({ searchParams }) {
   await requireRole(["admin"]);
   const params = searchParams != null && typeof searchParams.then === "function" ? await searchParams : (searchParams ?? {});
-  const editId = typeof params.edit === "string" ? params.edit : null;
-  const entryToEdit = editId
-    ? await prisma.ledger.findUnique({ where: { id: editId } })
-    : null;
 
   const { skip, take } = getSkipTake(params);
   const where = getWhere(params, {
@@ -35,7 +30,7 @@ export default async function AdminLedgerPage({ searchParams }) {
   });
   const orderBy = getOrderBy(params, ["date", "description", "cr", "dr"], { date: "desc" });
 
-  const [entries, totalCount, patientList] = await Promise.all([
+  const [entries, totalCount] = await Promise.all([
     prisma.ledger.findMany({
       where,
       include: { patient: true },
@@ -44,7 +39,6 @@ export default async function AdminLedgerPage({ searchParams }) {
       take,
     }),
     prisma.ledger.count({ where }),
-    prisma.patient.findMany({ orderBy: { patientName: "asc" } }),
   ]);
 
   const columns = [
@@ -68,12 +62,6 @@ export default async function AdminLedgerPage({ searchParams }) {
       header: "Actions",
       render: (row) => (
         <div className="flex flex-wrap gap-2">
-          <a
-            href={`/admin/ledger?edit=${row.id}`}
-            className="text-sky-600 hover:underline"
-          >
-            Edit
-          </a>
           <DeleteButton action={deleteLedgerEntry.bind(null, row.id)}>
             Delete
           </DeleteButton>
@@ -84,128 +72,7 @@ export default async function AdminLedgerPage({ searchParams }) {
 
   return (
     <div className="space-y-4">
-      <Card
-        title={entryToEdit ? "Edit ledger entry" : "Add ledger entry"}
-        actions={
-          entryToEdit ? (
-            <a
-              href="/admin/ledger"
-              className="text-sm text-slate-500 hover:text-slate-700"
-            >
-              Cancel
-            </a>
-          ) : null
-        }
-      >
-        <form
-          action={
-            entryToEdit
-              ? updateLedgerEntry.bind(null, entryToEdit.id)
-              : createLedgerEntry
-          }
-          className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
-        >
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">
-              Date
-            </label>
-            <input
-              type="date"
-              name="date"
-              className={inputClass}
-              defaultValue={
-                entryToEdit ? toInputDate(entryToEdit.date) : toInputDate(new Date())
-              }
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">
-              Patient
-            </label>
-            <select
-              name="patientId"
-              className={inputClass}
-              defaultValue={entryToEdit?.patientId ?? ""}
-            >
-              <option value="">—</option>
-              {patientList.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.patientName}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="sm:col-span-2">
-            <label className="mb-1 block text-xs font-medium text-slate-500">
-              Description *
-            </label>
-            <input
-              name="description"
-              className={inputClass}
-              defaultValue={entryToEdit?.description ?? ""}
-              required
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">
-              CR
-            </label>
-            <input
-              type="number"
-              name="cr"
-              className={inputClass}
-              defaultValue={entryToEdit?.cr ?? 0}
-              min={0}
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">
-              Advance
-            </label>
-            <input
-              type="number"
-              name="advance"
-              className={inputClass}
-              defaultValue={entryToEdit?.advance ?? 0}
-              min={0}
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">
-              Due
-            </label>
-            <input
-              type="number"
-              name="due"
-              className={inputClass}
-              defaultValue={entryToEdit?.due ?? 0}
-              min={0}
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">
-              DR
-            </label>
-            <input
-              type="number"
-              name="dr"
-              className={inputClass}
-              defaultValue={entryToEdit?.dr ?? 0}
-              min={0}
-            />
-          </div>
-          <div className="sm:col-span-2 flex items-center gap-2">
-            <button
-              type="submit"
-              className="inline-flex h-8 shrink-0 items-center rounded-md bg-sky-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-sky-700"
-            >
-              {entryToEdit ? "Update" : "Add"} entry
-            </button>
-          </div>
-        </form>
-      </Card>
-
-      <Card title="Daily Ledger">
+      <Card title="Daily Ledger (read-only)">
         <DataTable
           columns={columns}
           data={entries}

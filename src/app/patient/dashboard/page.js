@@ -171,9 +171,20 @@ export default async function PatientDashboardPage() {
         <Card
           title="Recent attendance"
           actions={
-            <Link href="/patient/attendance" className="text-xs text-sky-600 hover:underline">
-              View all
-            </Link>
+            <div className="flex items-center gap-3">
+              <Link
+                href="/patient/wallet"
+                className="text-xs text-sky-600 hover:underline"
+              >
+                Wallet
+              </Link>
+              <Link
+                href="/patient/attendance"
+                className="text-xs text-sky-600 hover:underline"
+              >
+                View all
+              </Link>
+            </div>
           }
         >
           {recentAttendance.length === 0 ? (

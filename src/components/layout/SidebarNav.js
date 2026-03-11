@@ -17,9 +17,7 @@ export default function SidebarNav({ items, orientation = "vertical" }) {
       }
     >
       {items.map((item) => {
-        const isActive =
-          pathname === item.href ||
-          (item.href !== "/" && pathname.startsWith(item.href));
+        const isActive = pathname === item.href;
 
         const baseClasses =
           "flex items-center whitespace-nowrap rounded-full px-3 py-2.5 font-medium transition min-h-[2.75rem] sm:py-1.5 sm:min-h-0";
