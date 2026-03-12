@@ -61,7 +61,7 @@ export default function RoleSidebarLayout({ role, children }) {
         </form>
       </header>
 
-      <div className="flex flex-col gap-4 px-3 py-4 pb-20 sm:px-4 sm:py-6 lg:flex-row lg:gap-6 lg:px-8 lg:py-8 lg:pb-8">
+      <div className="flex flex-col gap-4 px-3 py-4 pb-24 sm:px-4 sm:py-6 lg:flex-row lg:gap-6 lg:px-8 lg:py-8 lg:pb-8">
         {/* Desktop sidebar */}
         <aside className="hidden w-64 flex-none border-r border-slate-200 bg-white/80 px-4 py-6 shadow-sm lg:block">
           <div className="mb-6">
@@ -92,8 +92,8 @@ export default function RoleSidebarLayout({ role, children }) {
       </div>
 
       {/* Mobile bottom nav */}
-      <div className="fixed inset-x-0 bottom-0 border-t border-slate-200 bg-white/95 px-2 py-1.5 shadow-[0_-4px_12px_rgba(15,23,42,0.08)] backdrop-blur lg:hidden">
-        <div className="no-scrollbar flex items-center justify-between gap-1 overflow-x-auto">
+      <div className="fixed inset-x-0 bottom-0 border-t border-slate-200 bg-white/95 px-3 py-2 shadow-[0_-4px_14px_rgba(15,23,42,0.15)] backdrop-blur lg:hidden">
+        <div className="no-scrollbar flex items-center justify-between gap-2 overflow-x-auto">
           <SidebarNav items={navItems} orientation="horizontal" />
         </div>
       </div>
