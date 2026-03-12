@@ -92,8 +92,8 @@ export default function RoleSidebarLayout({ role, children }) {
       </div>
 
       {/* Mobile bottom nav */}
-      <div className="fixed inset-x-0 bottom-0 border-t border-slate-200 bg-white/95 px-3 py-2 shadow-[0_-4px_14px_rgba(15,23,42,0.15)] backdrop-blur lg:hidden">
-        <div className="no-scrollbar flex items-center justify-between gap-2 overflow-x-auto">
+      <div className="fixed inset-x-0 bottom-0 h-16 border-t border-slate-200 bg-white/95 px-3 shadow-[0_-4px_14px_rgba(15,23,42,0.15)] backdrop-blur lg:hidden">
+        <div className="no-scrollbar flex h-full items-center justify-between gap-2 overflow-x-auto">
           <SidebarNav items={navItems} orientation="horizontal" />
         </div>
       </div>

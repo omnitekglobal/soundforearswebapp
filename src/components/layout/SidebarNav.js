@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 function Icon({ href, isActive }) {
-  const common = "h-6 w-6";
+  const common = "h-7 w-7";
   const stroke = isActive ? "#0ea5e9" : "#64748b";
 
   if (href.includes("/dashboard")) {
@@ -181,7 +181,7 @@ export default function SidebarNav({ items, orientation = "vertical" }) {
     <nav
       className={
         isHorizontal
-          ? "flex flex-row gap-3 text-xs sm:text-sm"
+          ? "flex flex-row gap-4 text-[0.7rem] sm:text-xs"
           : "space-y-1 text-sm"
       }
     >
@@ -189,8 +189,8 @@ export default function SidebarNav({ items, orientation = "vertical" }) {
         const isActive = pathname === item.href;
 
         const baseClasses = isHorizontal
-          ? "flex flex-col items-center justify-center rounded-2xl px-3 py-2 text-[0.7rem] font-medium transition min-w-[3.75rem]"
-          : "flex items-center whitespace-nowrap rounded-xl px-3.5 py-3 font-medium transition min-h-[3rem] sm:py-1.5 sm:min-h-0";
+          ? "flex flex-col items-center justify-center rounded-2xl px-3.5 py-2.5 text-[0.75rem] font-medium transition min-w-[4.1rem]"
+          : "flex items-center whitespace-nowrap rounded-xl px-3.5 py-3.5 font-medium transition min-h-[3.1rem] sm:py-1.5 sm:min-h-0";
 
         const activeClasses = isHorizontal
           ? "text-sky-600"
@@ -209,7 +209,11 @@ export default function SidebarNav({ items, orientation = "vertical" }) {
             }`}
           >
             <Icon href={item.href} isActive={isActive} />
-            {!isHorizontal && (
+            {isHorizontal ? (
+              <span className="mt-0.5 truncate text-[0.7rem]">
+                {item.label}
+              </span>
+            ) : (
               <span className="ml-2 truncate">{item.label}</span>
             )}
           </Link>
