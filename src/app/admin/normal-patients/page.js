@@ -1,4 +1,3 @@
-import Link from "next/link";
 import prisma from "@/lib/prisma";
 import Card from "@/components/ui/Card";
 import DataTable from "@/components/ui/DataTable";
@@ -7,7 +6,7 @@ import DeleteButton from "@/components/ui/DeleteButton";
 import { requireRole } from "@/lib/auth";
 import { formatDate } from "@/lib/format";
 import { getSkipTake, getOrderBy, getWhere } from "@/lib/tableQuery";
-import { createPatient, updatePatient, deletePatient } from "./actions";
+import { createPatient, updatePatient, deletePatient } from "../patients/actions";
 
 function toInputDate(d) {
   if (!d) return "";
@@ -16,19 +15,22 @@ function toInputDate(d) {
 }
 
 export const metadata = {
-  title: "Speech therapy patients – Admin",
+  title: "Normal patients – Admin",
 };
 
 const inputClass =
   "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500";
 
-const PATIENT_SORT_KEYS = ["patientName", "childName", "age", "sex", "services", "amount", "advance", "due", "noOfSessions", "date", "createdAt"];
+const PATIENT_SORT_KEYS = ["patientName", "age", "sex", "services", "address", "date", "createdAt"];
 const PATIENT_FILTER_CONFIG = {};
 const DEFAULT_ORDER = { createdAt: "desc" };
 
-export default async function AdminPatientsPage({ searchParams }) {
+export default async function AdminNormalPatientsPage({ searchParams }) {
   await requireRole(["admin"]);
-  const params = searchParams != null && typeof searchParams.then === "function" ? await searchParams : (searchParams ?? {});
+  const params =
+    searchParams != null && typeof searchParams.then === "function"
+      ? await searchParams
+      : searchParams ?? {};
   const error =
     typeof params.error === "string" ? decodeURIComponent(params.error) : null;
   const editId = typeof params.edit === "string" ? params.edit : null;
@@ -40,104 +42,35 @@ export default async function AdminPatientsPage({ searchParams }) {
   const baseWhere = getWhere(params, PATIENT_FILTER_CONFIG);
   const where =
     baseWhere && Object.keys(baseWhere).length > 0
-      ? { AND: [{ patientType: "therapy" }, baseWhere] }
-      : { patientType: "therapy" };
+      ? { AND: [{ patientType: "normal" }, baseWhere] }
+      : { patientType: "normal" };
   const orderBy = getOrderBy(params, PATIENT_SORT_KEYS, DEFAULT_ORDER);
 
-  const [patients, totalCount, attendanceByPatient] = await Promise.all([
+  const [patients, totalCount] = await Promise.all([
     prisma.patient.findMany({ where, orderBy, skip, take }),
     prisma.patient.count({ where }),
-    prisma.attendance.groupBy({
-      by: ["patientId"],
-      where: { patientId: { not: null } },
-      _count: { _all: true },
-    }),
   ]);
-
-  const attendanceCountMap = new Map();
-  for (const group of attendanceByPatient) {
-    if (!group.patientId) continue;
-    attendanceCountMap.set(group.patientId, group._count._all);
-  }
-
-  const patientsWithBilling = patients.map((p) => {
-    const totalSessions = p.noOfSessions ?? null;
-    const perSession =
-      p.perSessionCharge && p.perSessionCharge > 0
-        ? p.perSessionCharge
-        : totalSessions && totalSessions > 0 && p.amount > 0
-          ? Math.round(p.amount / totalSessions)
-          : null;
-    const usedSessions = attendanceCountMap.get(p.id) ?? 0;
-    // Allow negative when sessions used exceed package (negative balance)
-    const remainingSessions =
-      totalSessions != null ? totalSessions - usedSessions : null;
-    const remainingAmount =
-      perSession != null
-        ? p.amount && p.amount > 0
-          ? p.amount - perSession * usedSessions
-          : remainingSessions != null
-            ? perSession * remainingSessions
-            : null
-        : null;
-
-    return {
-      ...p,
-      _billing: {
-        perSession,
-        usedSessions,
-        remainingSessions,
-        remainingAmount,
-      },
-    };
-  });
 
   const columns = [
     { key: "patientName", header: "Patient Name" },
-    { key: "childName", header: "Child Name" },
     { key: "age", header: "Age" },
     { key: "sex", header: "Sex" },
+    { key: "address", header: "Address", render: (row) => row.address || "—" },
     { key: "services", header: "Services" },
-    { key: "noOfSessions", header: "Sessions", render: (row) => row.noOfSessions ?? "—" },
-    {
-      key: "usedSessions",
-      header: "Used",
-      render: (row) => row._billing?.usedSessions ?? "—",
-    },
-    {
-      key: "remainingSessions",
-      header: "Remaining",
-      render: (row) => row._billing?.remainingSessions ?? "—",
-    },
     { key: "date", header: "Date", render: (row) => formatDate(row.date) },
     { key: "phone", header: "Phone", render: (row) => row.phone || "—" },
     { key: "email", header: "Email", render: (row) => row.email || "—" },
-    { key: "amount", header: "Amount" },
-    { key: "advance", header: "Advance" },
-    { key: "due", header: "Due" },
-    {
-      key: "remainingAmount",
-      header: "Remaining Amt",
-      render: (row) =>
-        row._billing?.remainingAmount != null ? `₹${row._billing.remainingAmount}` : "—",
-    },
     {
       key: "actions",
       header: "Actions",
       render: (row) => (
         <div className="flex flex-wrap gap-2">
           <a
-            href={`/admin/patients?edit=${row.id}`}
+            href={`/admin/normal-patients?edit=${row.id}`}
             className="text-sky-600 hover:underline"
           >
             Edit
           </a>
-          <Link
-            href={`/admin/patients/${row.id}/wallet`}
-            className="text-sky-600 hover:underline"
-          >
-            Wallet
-          </Link>
           <DeleteButton
             action={deletePatient.bind(null, row.id)}
             confirmMessage="Are you sure you want to delete this patient? This cannot be undone."
@@ -157,11 +90,11 @@ export default async function AdminPatientsPage({ searchParams }) {
         </Alert>
       )}
       <Card
-        title={patientToEdit ? "Edit speech therapy patient" : "Add speech therapy patient"}
+        title={patientToEdit ? "Edit normal patient" : "Add normal patient"}
         actions={
           patientToEdit ? (
             <a
-              href="/admin/patients"
+              href="/admin/normal-patients"
               className="text-sm text-slate-500 hover:text-slate-700"
             >
               Cancel
@@ -170,32 +103,22 @@ export default async function AdminPatientsPage({ searchParams }) {
         }
       >
         <form
-          action={patientToEdit ? updatePatient.bind(null, patientToEdit.id) : createPatient}
+          action={
+            patientToEdit
+              ? updatePatient.bind(null, patientToEdit.id)
+              : createPatient
+          }
           className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
         >
-          <input type="hidden" name="patientType" value="therapy" />
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-500">
-              Patient name / Child name *
+              Patient name *
             </label>
             <input
               name="patientName"
               className={inputClass}
-              defaultValue={patientToEdit?.patientName ?? patientToEdit?.childName ?? ""}
+              defaultValue={patientToEdit?.patientName ?? ""}
               required
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">
-              No. of sessions
-            </label>
-            <input
-              type="number"
-              name="noOfSessions"
-              className={inputClass}
-              defaultValue={patientToEdit?.noOfSessions ?? ""}
-              min={0}
-              placeholder="Optional"
             />
           </div>
           <div>
@@ -233,19 +156,6 @@ export default async function AdminPatientsPage({ searchParams }) {
               placeholder="Optional"
             />
           </div>
-          {!patientToEdit && (
-            <div>
-              <label className="mb-1 block text-xs font-medium text-slate-500">
-                Portal password
-              </label>
-              <input
-                type="password"
-                name="password"
-                className={inputClass}
-                placeholder="Set patient login password (optional)"
-              />
-            </div>
-          )}
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-500">
               Age
@@ -274,7 +184,17 @@ export default async function AdminPatientsPage({ searchParams }) {
           </div>
           <div className="sm:col-span-2">
             <label className="mb-1 block text-xs font-medium text-slate-500">
-              Services
+              Address
+            </label>
+            <input
+              name="address"
+              className={inputClass}
+              defaultValue={patientToEdit?.address ?? ""}
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="mb-1 block text-xs font-medium text-slate-500">
+              Notes / Services
             </label>
             <input
               name="services"
@@ -282,78 +202,30 @@ export default async function AdminPatientsPage({ searchParams }) {
               defaultValue={patientToEdit?.services ?? ""}
             />
           </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">
-              Amount
-            </label>
-            <input
-              type="number"
-              name="amount"
-              className={inputClass}
-              defaultValue={patientToEdit?.amount ?? 0}
-              min={0}
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">
-              Per session charge (optional)
-            </label>
-            <input
-              type="number"
-              name="perSessionCharge"
-              className={inputClass}
-              defaultValue={patientToEdit?.perSessionCharge ?? ""}
-              min={0}
-              placeholder="If set, used instead of Amount / Sessions"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">
-              Advance
-            </label>
-            <input
-              type="number"
-              name="advance"
-              className={inputClass}
-              defaultValue={patientToEdit?.advance ?? 0}
-              min={0}
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">
-              Due
-            </label>
-            <input
-              type="number"
-              name="due"
-              className={inputClass}
-              defaultValue={patientToEdit?.due ?? 0}
-              min={0}
-            />
-          </div>
           <div className="sm:col-span-2 flex items-center gap-2">
+            <input type="hidden" name="patientType" value="normal" />
             <button
               type="submit"
               className="inline-flex h-8 shrink-0 items-center rounded-md bg-sky-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-sky-700"
             >
-              {patientToEdit ? "Update" : "Add"} patient
+              {patientToEdit ? "Update" : "Add"} normal patient
             </button>
           </div>
         </form>
       </Card>
 
-      <Card title="Speech therapy patients">
+      <Card title="Normal patients">
         <DataTable
           columns={columns}
-          data={patientsWithBilling}
-          emptyMessage="No patients added yet."
-          basePath="/admin/patients"
+          data={patients}
+          emptyMessage="No normal patients added yet."
+          basePath="/admin/normal-patients"
           searchParams={params}
           totalCount={totalCount}
           filterableColumns={[
             { key: "patientName", header: "Patient Name" },
-            { key: "childName", header: "Child Name" },
-            { key: "services", header: "Services" },
+            { key: "address", header: "Address" },
+            { key: "services", header: "Services / Notes" },
             { key: "phone", header: "Phone" },
             { key: "email", header: "Email" },
           ]}
@@ -365,3 +237,4 @@ export default async function AdminPatientsPage({ searchParams }) {
     </div>
   );
 }
+

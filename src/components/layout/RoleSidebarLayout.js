@@ -4,7 +4,8 @@ import { logoutAction } from "@/app/(auth)/logout/actions";
 const navByRole = {
   admin: [
     { label: "Dashboard", href: "/admin/dashboard" },
-    { label: "Patients", href: "/admin/patients" },
+    { label: "Normal patients", href: "/admin/normal-patients" },
+    { label: "Speech therapy patients", href: "/admin/patients" },
     { label: "Staff", href: "/admin/staff" },
     { label: "Attendance", href: "/admin/attendance" },
     { label: "Therapies", href: "/admin/therapies" },

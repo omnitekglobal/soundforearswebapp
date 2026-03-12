@@ -1,4 +1,3 @@
-import Link from "next/link";
 import prisma from "@/lib/prisma";
 import Card from "@/components/ui/Card";
 import DataTable from "@/components/ui/DataTable";
@@ -7,6 +6,7 @@ import { requireRole } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { getSkipTake, getOrderBy, getWhere } from "@/lib/tableQuery";
 import { createWalkIn, updateWalkIn, deleteWalkIn } from "./actions";
+import WalkInPatientFields from "./WalkInPatientFields";
 
 export const metadata = {
   title: "Daily Walk-ins – Admin",
@@ -35,7 +35,7 @@ export default async function AdminWalkinsPage({ searchParams }) {
   });
   const orderBy = getOrderBy(params, ["date", "name", "purpose"], { date: "desc" });
 
-  const [walkins, totalCount] = await Promise.all([
+  const [walkins, totalCount, patients] = await Promise.all([
     prisma.walkIn.findMany({
       where,
       orderBy,
@@ -43,6 +43,7 @@ export default async function AdminWalkinsPage({ searchParams }) {
       take,
     }),
     prisma.walkIn.count({ where }),
+    prisma.patient.findMany({ orderBy: { patientName: "asc" } }),
   ]);
 
   const columns = [
@@ -95,27 +96,11 @@ export default async function AdminWalkinsPage({ searchParams }) {
           }
           className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
         >
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">
-              Name *
-            </label>
-            <input
-              name="name"
-              className={inputClass}
-              defaultValue={walkInToEdit?.name ?? ""}
-              required
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">
-              Phone
-            </label>
-            <input
-              name="phone"
-              className={inputClass}
-              defaultValue={walkInToEdit?.phone ?? ""}
-            />
-          </div>
+          <WalkInPatientFields
+            patients={patients}
+            walkInToEdit={walkInToEdit}
+            inputClass={inputClass}
+          />
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-500">
               Purpose *

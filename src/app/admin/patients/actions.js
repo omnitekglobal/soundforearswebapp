@@ -37,6 +37,8 @@ export async function createPatient(formData) {
   const advance = toInt(formData.get("advance"));
   const due = toInt(formData.get("due"));
   const dateVal = parseDateInClinicTz(formData.get("date"));
+  const patientType =
+    formData.get("patientType")?.toString().trim() || "therapy";
   const patientData = {
     patientName,
     childName: null,
@@ -51,6 +53,8 @@ export async function createPatient(formData) {
     date: dateVal ?? undefined,
     phone: formData.get("phone")?.toString().trim() || null,
     email,
+    address: formData.get("address")?.toString().trim() || null,
+    patientType,
   };
 
   let patient;
@@ -146,6 +150,9 @@ export async function updatePatient(id, formData) {
       date: dateVal ?? undefined,
       phone: formData.get("phone")?.toString().trim() || null,
       email: formData.get("email")?.toString().trim() || null,
+      address: formData.get("address")?.toString().trim() || null,
+      patientType:
+        formData.get("patientType")?.toString().trim() || undefined,
     },
   });
   revalidatePath("/admin/patients");

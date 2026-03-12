@@ -30,6 +30,17 @@ body {
   overflow-x: hidden;
 }
 
+/* Approximate safe area for mobile without env() */
+.safe-area-fixed {
+  padding: 12px;
+}
+
+@media (min-width: 640px) {
+  .safe-area-fixed {
+    padding: 16px;
+  }
+}
+
 /* Hide scrollbar on horizontal nav but keep scroll */
 .no-scrollbar {
   -webkit-overflow-scrolling: touch;
