@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 export default function RouteTransitionLoader({ children }) {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const isFirstRender = useRef(true);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -19,7 +18,7 @@ export default function RouteTransitionLoader({ children }) {
     const timer = setTimeout(() => setIsLoading(false), 450);
 
     return () => clearTimeout(timer);
-  }, [pathname, searchParams]);
+  }, [pathname]);
 
   return (
     <>
