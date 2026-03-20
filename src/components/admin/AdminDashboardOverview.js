@@ -44,7 +44,7 @@ export default async function AdminDashboardOverview() {
       where: { date: { gte: startOfDay(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)) } },
     }),
     prisma.walkIn.count({
-      where: { date: { gte: todayStart, lte: todayEnd } },
+      where: { createdAt: { gte: todayStart, lte: todayEnd } },
     }),
     prisma.ledger.aggregate({
       where: { date: { gte: todayStart, lte: todayEnd } },
