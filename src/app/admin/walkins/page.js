@@ -3,10 +3,10 @@ import Card from "@/components/ui/Card";
 import DataTable from "@/components/ui/DataTable";
 import DeleteButton from "@/components/ui/DeleteButton";
 import { requireRole } from "@/lib/auth";
-import { formatDateTime } from "@/lib/format";
 import { getSkipTake, getOrderBy, getWhere } from "@/lib/tableQuery";
 import { createWalkIn, updateWalkIn, deleteWalkIn } from "./actions";
 import WalkInPatientFields from "./WalkInPatientFields";
+import { CLINIC_TIMEZONE } from "@/lib/datetime";
 
 export const metadata = {
   title: "Daily Walk-ins – Admin",
@@ -15,33 +15,44 @@ export const metadata = {
 const inputClass =
   "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500";
 
+// Returns YYYY-MM-DD in IST — correct value for <input type="date">
 function toInputDate(d) {
   if (!d) return "";
-  const x = new Date(d);
-  return x.toISOString().slice(0, 10);
+  return new Date(d).toLocaleDateString("en-CA", { timeZone: CLINIC_TIMEZONE });
+}
+
+// Human-readable IST date for table display
+function formatDateIST(d) {
+  if (!d) return "—";
+  return new Date(d).toLocaleString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
 }
 
 export default async function AdminWalkinsPage({ searchParams }) {
   await requireRole(["admin"]);
-  const params = searchParams != null && typeof searchParams.then === "function" ? await searchParams : (searchParams ?? {});
+  const params =
+    searchParams != null && typeof searchParams.then === "function"
+      ? await searchParams
+      : searchParams ?? {};
+
   const editId = typeof params.edit === "string" ? params.edit : null;
   const walkInToEdit = editId
     ? await prisma.walkIn.findUnique({ where: { id: editId } })
     : null;
+
   const { skip, take } = getSkipTake(params);
-  const where = getWhere(params, {
-    name: {},
-    purpose: {},
-  });
+  const where = getWhere(params, { name: {}, purpose: {} });
   const orderBy = getOrderBy(params, ["date", "name", "purpose"], { date: "desc" });
 
   const [walkins, totalCount, patients] = await Promise.all([
-    prisma.walkIn.findMany({
-      where,
-      orderBy,
-      skip,
-      take,
-    }),
+    prisma.walkIn.findMany({ where, orderBy, skip, take }),
     prisma.walkIn.count({ where }),
     prisma.patient.findMany({ orderBy: { patientName: "asc" } }),
   ]);
@@ -54,17 +65,19 @@ export default async function AdminWalkinsPage({ searchParams }) {
     {
       key: "date",
       header: "Date",
-      render: (row) => formatDateTime(row.date),
+      render: (row) => row.date.toDateString(),
+    },
+    {
+      key: "date",
+      header: "Created Date",
+      render: (row) => formatDateIST(row.createdAt),
     },
     {
       key: "actions",
       header: "Actions",
       render: (row) => (
         <div className="flex flex-wrap gap-2">
-          <a
-            href={`/admin/walkins?edit=${row.id}`}
-            className="text-sky-600 hover:underline"
-          >
+          <a href={`/admin/walkins?edit=${row.id}`} className="text-sky-600 hover:underline">
             Edit
           </a>
           <DeleteButton action={deleteWalkIn.bind(null, row.id)}>
@@ -81,19 +94,14 @@ export default async function AdminWalkinsPage({ searchParams }) {
         title={walkInToEdit ? "Edit walk-in" : "Add walk-in"}
         actions={
           walkInToEdit ? (
-            <a
-              href="/admin/walkins"
-              className="text-sm text-slate-500 hover:text-slate-700"
-            >
+            <a href="/admin/walkins" className="text-sm text-slate-500 hover:text-slate-700">
               Cancel
             </a>
           ) : null
         }
       >
         <form
-          action={
-            walkInToEdit ? updateWalkIn.bind(null, walkInToEdit.id) : createWalkIn
-          }
+          action={walkInToEdit ? updateWalkIn.bind(null, walkInToEdit.id) : createWalkIn}
           className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
         >
           <WalkInPatientFields
@@ -102,9 +110,7 @@ export default async function AdminWalkinsPage({ searchParams }) {
             inputClass={inputClass}
           />
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">
-              Purpose *
-            </label>
+            <label className="mb-1 block text-xs font-medium text-slate-500">Purpose *</label>
             <input
               name="purpose"
               className={inputClass}
@@ -113,9 +119,7 @@ export default async function AdminWalkinsPage({ searchParams }) {
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">
-              Place
-            </label>
+            <label className="mb-1 block text-xs font-medium text-slate-500">Place</label>
             <input
               name="place"
               className={inputClass}
@@ -123,16 +127,12 @@ export default async function AdminWalkinsPage({ searchParams }) {
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">
-              Date
-            </label>
+            <label className="mb-1 block text-xs font-medium text-slate-500">Date</label>
             <input
               type="date"
               name="date"
               className={inputClass}
-              defaultValue={
-                walkInToEdit ? toInputDate(walkInToEdit.date) : toInputDate(new Date())
-              }
+              defaultValue={toInputDate(walkInToEdit?.date ?? new Date())}
             />
           </div>
           <div className="sm:col-span-2 flex items-center gap-2">

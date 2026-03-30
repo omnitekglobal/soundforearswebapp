@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import Card from "@/components/ui/Card";
 import DataTable from "@/components/ui/DataTable";
@@ -6,6 +7,7 @@ import { requireRole } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { getSkipTake, getOrderBy, getWhere } from "@/lib/tableQuery";
 import { createPayoutEntry, deleteLedgerEntry } from "../actions";
+import PatientSearchInput from "./PatientSearchInput";
 
 export const metadata = {
   title: "Payouts – Admin",
@@ -29,12 +31,17 @@ export default async function AdminPayoutsPage({ searchParams }) {
 
   const { skip, take } = getSkipTake(params);
   const whereFilters = getWhere(params, {
-    patient: { type: "relation", relationKey: "patient", field: "patientName" },
+    description: { type: "string" },
   });
-  const where =
-    whereFilters && Object.keys(whereFilters).length > 0
-      ? { AND: [{ dr: { gt: 0 } }, whereFilters] }
-      : { dr: { gt: 0 } };
+
+  const conditions = [{ dr: { gt: 0 } }];
+  if (whereFilters && Object.keys(whereFilters).length > 0) {
+    conditions.push(whereFilters);
+  }
+  if (params.patientId) {
+    conditions.push({ patientId: params.patientId });
+  }
+  const where = conditions.length > 1 ? { AND: conditions } : conditions[0];
 
   const orderBy = getOrderBy(params, ["date", "description", "dr"], {
     date: "desc",
@@ -52,11 +59,26 @@ export default async function AdminPayoutsPage({ searchParams }) {
     prisma.patient.findMany({ orderBy: { patientName: "asc" } }),
   ]);
 
+  async function filterByPatient(formData) {
+    "use server";
+    const patientId = formData.get("patientId") || "";
+    redirect(
+      patientId
+        ? `/admin/ledger/payouts?patientId=${patientId}`
+        : `/admin/ledger/payouts`
+    );
+  }
+
   const columns = [
     {
       key: "date",
       header: "Date",
-      render: (row) => formatDateTime(row.date),
+      render: (row) => row.date.toDateString(),
+    },
+    {
+      key: "createdAt",
+      header: "Created Date",
+      render: (row) => row.createdAt.toLocaleString(),
     },
     {
       key: "patient",
@@ -99,19 +121,10 @@ export default async function AdminPayoutsPage({ searchParams }) {
               defaultValue={toInputDate(new Date())}
             />
           </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">
-              Patient
-            </label>
-            <select name="patientId" className={inputClass} defaultValue="">
-              <option value="">—</option>
-              {patientList.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.patientName}
-                </option>
-              ))}
-            </select>
-          </div>
+
+          {/* Searchable patient combobox — client component */}
+          <PatientSearchInput patientList={patientList} />
+
           <div className="sm:col-span-2">
             <label className="mb-1 block text-xs font-medium text-slate-500">
               Description *
@@ -144,6 +157,43 @@ export default async function AdminPayoutsPage({ searchParams }) {
         </form>
       </Card>
 
+      {/* Patient filter for the table */}
+      <Card title="Filter by patient">
+        <form action={filterByPatient} className="flex flex-wrap items-end gap-3">
+          <div className="w-64">
+            <label className="mb-1 block text-xs font-medium text-slate-500">
+              Patient
+            </label>
+            <select
+              name="patientId"
+              className={inputClass}
+              defaultValue={params.patientId ?? ""}
+            >
+              <option value="">All patients</option>
+              {patientList.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.patientName}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            type="submit"
+            className="inline-flex h-8 shrink-0 items-center rounded-md bg-sky-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-sky-700"
+          >
+            Search
+          </button>
+          {params.patientId && (
+            <Link
+              href="/admin/ledger/payouts"
+              className="inline-flex h-8 items-center rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm hover:bg-slate-50"
+            >
+              Clear
+            </Link>
+          )}
+        </form>
+      </Card>
+
       <Card title="Payouts (DR entries)">
         <DataTable
           columns={columns}
@@ -152,10 +202,7 @@ export default async function AdminPayoutsPage({ searchParams }) {
           basePath="/admin/ledger/payouts"
           searchParams={params}
           totalCount={totalCount}
-          filterableColumns={[
-            { key: "description", header: "Description" },
-            { key: "patient", header: "Patient" },
-          ]}
+          filterableColumns={[{ key: "description", header: "Description" }]}
           sortableColumns={["date", "description", "dr"]}
         />
       </Card>
@@ -170,4 +217,3 @@ export default async function AdminPayoutsPage({ searchParams }) {
     </div>
   );
 }
-

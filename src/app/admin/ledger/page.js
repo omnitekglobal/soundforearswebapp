@@ -45,7 +45,12 @@ export default async function AdminLedgerPage({ searchParams }) {
     {
       key: "date",
       header: "Date",
-      render: (row) => formatDateTime(row.date),
+      render: (row) => row.date.toDateString(),
+    },
+    {
+      key: "createdAt",
+      header: "Created Date",
+      render: (row) => row.createdAt.toLocaleString(),
     },
     {
       key: "patient",

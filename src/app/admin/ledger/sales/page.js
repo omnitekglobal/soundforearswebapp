@@ -6,6 +6,7 @@ import { requireRole } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { getSkipTake, getOrderBy, getWhere } from "@/lib/tableQuery";
 import { createSaleEntry, deleteLedgerEntry } from "../actions";
+import PatientSearchInput from "./PatientSearchInput";
 
 export const metadata = {
   title: "Sales – Admin",
@@ -56,7 +57,12 @@ export default async function AdminSalesPage({ searchParams }) {
     {
       key: "date",
       header: "Date",
-      render: (row) => formatDateTime(row.date),
+      render: (row) => row.date.toDateString(),
+    },
+    {
+      key: "createdAt",
+      header: "Created Date",
+      render: (row) => row.createdAt.toLocaleString(),
     },
     {
       key: "patient",
@@ -99,19 +105,10 @@ export default async function AdminSalesPage({ searchParams }) {
               defaultValue={toInputDate(new Date())}
             />
           </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500">
-              Patient
-            </label>
-            <select name="patientId" className={inputClass} defaultValue="">
-              <option value="">—</option>
-              {patientList.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.patientName}
-                </option>
-              ))}
-            </select>
-          </div>
+
+          {/* Searchable patient combobox — client component */}
+          <PatientSearchInput patientList={patientList} />
+
           <div className="sm:col-span-2">
             <label className="mb-1 block text-xs font-medium text-slate-500">
               Description *
@@ -170,4 +167,3 @@ export default async function AdminSalesPage({ searchParams }) {
     </div>
   );
 }
-

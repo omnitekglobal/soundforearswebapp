@@ -4,23 +4,29 @@ import Card from "@/components/ui/Card";
 import StatCard from "@/components/ui/StatCard";
 import { requireRole } from "@/lib/auth";
 
-function startOfDay(d) {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
+function startOfDayIST(date = new Date()) {
+  // IST = UTC+5:30. Get today's midnight in IST as a UTC Date.
+  const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+  const istNow = new Date(date.getTime() + IST_OFFSET_MS);
+  // Zero out to midnight in IST
+  istNow.setUTCHours(0, 0, 0, 0);
+  // Convert back to UTC
+  return new Date(istNow.getTime() - IST_OFFSET_MS);
 }
 
-function endOfDay(d) {
-  const x = new Date(d);
-  x.setHours(23, 59, 59, 999);
-  return x;
+function endOfDayIST(date = new Date()) {
+  const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+  const istNow = new Date(date.getTime() + IST_OFFSET_MS);
+  istNow.setUTCHours(23, 59, 59, 999);
+  return new Date(istNow.getTime() - IST_OFFSET_MS);
 }
 
 export default async function AdminDashboardOverview() {
   await requireRole(["admin"]);
 
-  const todayStart = startOfDay(new Date());
-  const todayEnd = endOfDay(new Date());
+  const todayStart = startOfDayIST();
+  const todayEnd = endOfDayIST();
+  const thirtyDaysAgo = startOfDayIST(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
 
   const [
     totalPatients,
@@ -41,7 +47,7 @@ export default async function AdminDashboardOverview() {
       where: { date: { gte: todayStart, lte: todayEnd } },
     }),
     prisma.attendance.count({
-      where: { date: { gte: startOfDay(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)) } },
+      where: { date: { gte: thirtyDaysAgo } },
     }),
     prisma.walkIn.count({
       where: { createdAt: { gte: todayStart, lte: todayEnd } },
@@ -51,11 +57,7 @@ export default async function AdminDashboardOverview() {
       _sum: { cr: true, dr: true, advance: true },
     }),
     prisma.ledger.aggregate({
-      where: {
-        date: {
-          gte: startOfDay(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)),
-        },
-      },
+      where: { date: { gte: thirtyDaysAgo } },
       _sum: { cr: true, dr: true },
     }),
     prisma.therapyAssignment.count({
@@ -70,7 +72,7 @@ export default async function AdminDashboardOverview() {
       include: { patient: true },
     }),
     prisma.patient.findMany({
-      select: { id: true, amount: true, noOfSessions: true },
+      select: { id: true, amount: true, noOfSessions: true, perSessionCharge: true },
     }),
     prisma.attendance.groupBy({
       by: ["patientId"],
@@ -107,7 +109,6 @@ export default async function AdminDashboardOverview() {
     }
 
     const usedSessions = attendanceCountMap.get(p.id) ?? 0;
-    // Allow negative balance when sessions used exceed package
     const remainingSessions = p.noOfSessions - usedSessions;
     const remainingAmount =
       p.amount && p.amount > 0
@@ -178,42 +179,12 @@ export default async function AdminDashboardOverview() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card title="Quick links" actions={<Link href="/admin/patients" className="text-xs text-sky-600 hover:underline">View all</Link>}>
           <div className="flex flex-wrap gap-2">
-            <Link
-              href="/admin/patients"
-              className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200"
-            >
-              Patients
-            </Link>
-            <Link
-              href="/admin/staff"
-              className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200"
-            >
-              Staff
-            </Link>
-            <Link
-              href="/admin/attendance"
-              className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200"
-            >
-              Attendance
-            </Link>
-            <Link
-              href="/admin/therapies"
-              className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200"
-            >
-              Therapies
-            </Link>
-            <Link
-              href="/admin/ledger"
-              className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200"
-            >
-              Ledger
-            </Link>
-            <Link
-              href="/admin/walkins"
-              className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200"
-            >
-              Walk-ins
-            </Link>
+            <Link href="/admin/patients" className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200">Patients</Link>
+            <Link href="/admin/staff" className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200">Staff</Link>
+            <Link href="/admin/attendance" className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200">Attendance</Link>
+            <Link href="/admin/therapies" className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200">Therapies</Link>
+            <Link href="/admin/ledger" className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200">Ledger</Link>
+            <Link href="/admin/walkins" className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200">Walk-ins</Link>
           </div>
         </Card>
 
