@@ -22,6 +22,17 @@ function getRequiredRoleForPath(pathname) {
 
 export async function middleware(request) {
   const { pathname } = request.nextUrl;
+
+  // PWA + static assets must not be redirected to /login (would break SW/manifest/icons).
+  if (
+    pathname === "/manifest.json" ||
+    pathname === "/sw.js" ||
+    pathname.startsWith("/icons/") ||
+    /^\/workbox-[^/]+\.js(\.map)?$/.test(pathname)
+  ) {
+    return NextResponse.next();
+  }
+
   const session = await getSessionFromRequest(request);
 
   const isAuthRoute = pathname === "/login";
@@ -56,6 +67,8 @@ export async function middleware(request) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|images|api/health).*)"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|sw.js|manifest.json|icons/|workbox-|images|api/health).*)",
+  ],
 };
 
