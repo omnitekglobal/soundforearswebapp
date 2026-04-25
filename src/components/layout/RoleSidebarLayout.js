@@ -1,19 +1,9 @@
 import SidebarNav from "./SidebarNav";
 import { logoutAction } from "@/app/(auth)/logout/actions";
+import { FULL_ADMIN_NAV_ITEMS } from "@/lib/adminAccess";
 
 const navByRole = {
-  admin: [
-    { label: "Dashboard", href: "/admin/dashboard" },
-    { label: "Normal patients", href: "/admin/normal-patients" },
-    { label: "Speech therapy patients", href: "/admin/patients" },
-    { label: "Staff", href: "/admin/staff" },
-    { label: "Attendance", href: "/admin/attendance" },
-    { label: "Therapies", href: "/admin/therapies" },
-    { label: "Sales", href: "/admin/ledger/sales" },
-    { label: "Payouts", href: "/admin/ledger/payouts" },
-    { label: "Ledger", href: "/admin/ledger" },
-    { label: "Walk-ins", href: "/admin/walkins" },
-  ],
+  admin: FULL_ADMIN_NAV_ITEMS,
   staff: [
     { label: "Dashboard", href: "/staff/dashboard" },
     { label: "Attendance", href: "/staff/attendance" },

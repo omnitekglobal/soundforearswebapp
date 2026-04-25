@@ -4,6 +4,7 @@ import Card from "@/components/ui/Card";
 import StatCard from "@/components/ui/StatCard";
 import { requireRole, requireSession } from "@/lib/auth";
 import { effectiveStaffModuleAccess } from "@/lib/staffModuleAccess";
+import { hasAnyAdminModule, getDefaultAdminEntryHref } from "@/lib/adminAccess";
 
 function startOfDay(d) {
   const x = new Date(d);
@@ -107,6 +108,23 @@ export default async function StaffDashboardPage() {
           Hello, {staff.name}. Here&apos;s your overview.
         </p>
       </div>
+
+      {hasAnyAdminModule(staff.permissions) && (
+        <div className="rounded-lg border border-amber-200/90 bg-amber-50/90 px-4 py-3 text-sm text-amber-950 shadow-sm">
+          <span className="font-medium">Clinic admin access</span>
+          <span className="text-amber-900/90">
+            {" "}
+            You are allowed to use selected admin pages. The sidebar in the admin app
+            only shows what is enabled for your account.{" "}
+          </span>
+          <Link
+            href={getDefaultAdminEntryHref(staff.permissions)}
+            className="font-medium text-amber-900 underline decoration-amber-700/50 hover:decoration-amber-900"
+          >
+            Open admin app
+          </Link>
+        </div>
+      )}
 
       {(access.canAccessAttendance ||
         access.canAccessTherapies ||

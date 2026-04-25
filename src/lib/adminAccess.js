@@ -28,6 +28,20 @@ export function hasAnyAdminModule(permissions) {
   return Object.values(ADMIN_MODULE_FIELDS).some((f) => permissions[f]);
 }
 
+/** Same order as the admin sidebar; used for full admins and quick-link parity. */
+export const FULL_ADMIN_NAV_ITEMS = [
+  { label: "Dashboard", href: "/admin/dashboard" },
+  { label: "Normal patients", href: "/admin/normal-patients" },
+  { label: "Speech therapy patients", href: "/admin/patients" },
+  { label: "Staff", href: "/admin/staff" },
+  { label: "Attendance", href: "/admin/attendance" },
+  { label: "Therapies", href: "/admin/therapies" },
+  { label: "Sales", href: "/admin/ledger/sales" },
+  { label: "Payouts", href: "/admin/ledger/payouts" },
+  { label: "Ledger", href: "/admin/ledger" },
+  { label: "Walk-ins", href: "/admin/walkins" },
+];
+
 /**
  * @param {import("@prisma/client").Permission | null} permissions
  */
@@ -73,6 +87,26 @@ export function buildAdminNavItemsForPermissions(permissions) {
 export function countAdminModulesEnabled(permissions) {
   if (!permissions) return 0;
   return Object.values(ADMIN_MODULE_FIELDS).filter((f) => permissions[f]).length;
+}
+
+/**
+ * Shortcuts on the admin home (excludes dashboard; respects assigned modules for staff).
+ */
+export function getAdminQuickLinkItems(isFullAdmin, permissions) {
+  if (isFullAdmin) {
+    return FULL_ADMIN_NAV_ITEMS.filter((i) => i.href !== "/admin/dashboard");
+  }
+  return buildAdminNavItemsForPermissions(permissions).filter(
+    (i) => i.href !== "/admin/dashboard"
+  );
+}
+
+/**
+ * First admin URL this user should use when opening the clinic admin app from the staff app.
+ */
+export function getDefaultAdminEntryHref(permissions) {
+  const items = buildAdminNavItemsForPermissions(permissions);
+  return items[0]?.href ?? "/admin/dashboard";
 }
 
 /**

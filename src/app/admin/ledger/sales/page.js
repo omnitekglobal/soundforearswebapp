@@ -2,7 +2,11 @@ import Link from "next/link";
 import prisma from "@/lib/prisma";
 import Card from "@/components/ui/Card";
 import DataTable from "@/components/ui/DataTable";
-import { requireAdminOrStaffForModule } from "@/lib/adminAccess";
+import { getSession } from "@/lib/auth";
+import {
+  requireAdminOrStaffForModule,
+  hasAdminModule,
+} from "@/lib/adminAccess";
 import { formatDateTime } from "@/lib/format";
 import { getSkipTake, getOrderBy, getWhere } from "@/lib/tableQuery";
 import { createSaleEntry, deleteLedgerEntry } from "../actions";
@@ -23,6 +27,17 @@ function toInputDate(d) {
 
 export default async function AdminSalesPage({ searchParams }) {
   await requireAdminOrStaffForModule("sales");
+  const session = await getSession();
+  const isFullAdmin = session?.role === "admin";
+  const staffPerms = !isFullAdmin
+    ? (
+        await prisma.staff.findFirst({
+          where: { userId: session.userId },
+          include: { permissions: true },
+        })
+      )?.permissions
+    : null;
+  const canOpenFullLedger = isFullAdmin || hasAdminModule(staffPerms, "ledger");
   const params =
     searchParams != null && typeof searchParams.then === "function"
       ? await searchParams
@@ -157,13 +172,15 @@ export default async function AdminSalesPage({ searchParams }) {
         />
       </Card>
 
-      <div className="text-xs text-slate-500">
-        Need to see everything together?{" "}
-        <Link href="/admin/ledger" className="text-sky-600 hover:underline">
-          Open full ledger
-        </Link>
-        .
-      </div>
+      {canOpenFullLedger && (
+        <div className="text-xs text-slate-500">
+          Need to see everything together?{" "}
+          <Link href="/admin/ledger" className="text-sky-600 hover:underline">
+            Open full ledger
+          </Link>
+          .
+        </div>
+      )}
     </div>
   );
 }

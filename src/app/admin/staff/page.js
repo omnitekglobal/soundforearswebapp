@@ -39,16 +39,33 @@ export default async function AdminStaffPage({ searchParams }) {
     : null;
 
   const { skip, take } = getSkipTake(params);
-  const where = getWhere(params, {});
+  const where = getWhere(params, {
+    email: { type: "relation", relationKey: "user", field: "email" },
+  });
   const orderBy = getOrderBy(params, STAFF_SORT_KEYS, DEFAULT_ORDER);
 
   const [staff, totalCount] = await Promise.all([
-    prisma.staff.findMany({ where, include: { permissions: true }, orderBy, skip, take }),
+    prisma.staff.findMany({
+      where,
+      include: { user: { select: { email: true } }, permissions: true },
+      orderBy,
+      skip,
+      take,
+    }),
     prisma.staff.count({ where }),
   ]);
 
   const columns = [
     { key: "name", header: "Name" },
+    {
+      key: "email",
+      header: "Email",
+      render: (row) => (
+        <span className="text-sm text-slate-800 break-all">
+          {row.user?.email ?? "—"}
+        </span>
+      ),
+    },
     { key: "phone", header: "Phone" },
     {
       key: "isActive",
@@ -155,6 +172,17 @@ export default async function AdminStaffPage({ searchParams }) {
               required
             />
           </div>
+          {staffToEdit && (
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-500">
+                Email
+              </label>
+              <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 break-all">
+                {staffToEdit.user?.email ?? "—"}
+              </p>
+              <p className="mt-0.5 text-xs text-slate-500">Used for login.</p>
+            </div>
+          )}
           {!staffToEdit && (
             <>
               <div>
@@ -241,7 +269,11 @@ export default async function AdminStaffPage({ searchParams }) {
           basePath="/admin/staff"
           searchParams={params}
           totalCount={totalCount}
-          filterableColumns={[{ key: "name", header: "Name" }, { key: "phone", header: "Phone" }]}
+          filterableColumns={[
+            { key: "name", header: "Name" },
+            { key: "email", header: "Email" },
+            { key: "phone", header: "Phone" },
+          ]}
           sortableColumns={STAFF_SORT_KEYS}
         />
       </Card>
