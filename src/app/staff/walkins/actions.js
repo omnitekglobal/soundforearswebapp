@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { requireRole, requireSession } from "@/lib/auth";
+import { effectiveStaffModuleAccess } from "@/lib/staffModuleAccess";
 import { parseDateInClinicTz } from "@/lib/datetime";
 
 function parseDate(v) {
@@ -18,7 +19,7 @@ async function ensureWalkInPermission() {
     where: { userId: session.userId },
     include: { permissions: true },
   });
-  if (!staff?.permissions?.canAccessWalkIn && session.role !== "admin")
+  if (!effectiveStaffModuleAccess(staff?.permissions).canAccessWalkIn && session.role !== "admin")
     throw new Error("You do not have permission to manage walk-ins.");
 }
 

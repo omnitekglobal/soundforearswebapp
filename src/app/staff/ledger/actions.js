@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { requireRole, requireSession } from "@/lib/auth";
+import { effectiveStaffModuleAccess } from "@/lib/staffModuleAccess";
 import { parseDateInClinicTz } from "@/lib/datetime";
 
 function toInt(v) {
@@ -24,7 +25,7 @@ async function ensureLedgerPermission() {
     where: { userId: session.userId },
     include: { permissions: true },
   });
-  if (!staff?.permissions?.canAccessLedger && session.role !== "admin")
+  if (!effectiveStaffModuleAccess(staff?.permissions).canAccessLedger && session.role !== "admin")
     throw new Error("You do not have permission to manage the ledger.");
 }
 

@@ -4,6 +4,7 @@ import Card from "@/components/ui/Card";
 import DataTable from "@/components/ui/DataTable";
 import DeleteButton from "@/components/ui/DeleteButton";
 import { requireRole, requireSession } from "@/lib/auth";
+import { effectiveStaffModuleAccess } from "@/lib/staffModuleAccess";
 import { formatDateTime } from "@/lib/format";
 import { getSkipTake, getOrderBy, getWhere } from "@/lib/tableQuery";
 import {
@@ -31,37 +32,57 @@ export default async function StaffTherapiesPage({ searchParams }) {
   const session = await requireSession();
   const staff = await prisma.staff.findFirst({
     where: { userId: session.userId },
+    include: { permissions: true },
   });
+
+  if (!staff) {
+    return (
+      <div className="space-y-4">
+        <Card title="Therapies">
+          <p className="text-sm text-slate-600">No staff profile linked.</p>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!effectiveStaffModuleAccess(staff.permissions).canAccessTherapies) {
+    return (
+      <div className="space-y-4">
+        <Card title="Therapies">
+          <p className="text-sm text-slate-600">
+            You do not have permission to view therapy assignments. Please contact
+            an admin.
+          </p>
+        </Card>
+      </div>
+    );
+  }
 
   const editId = typeof params.edit === "string" ? params.edit : null;
   const assignmentToEdit = editId
     ? await prisma.therapyAssignment.findFirst({
-        where: { id: editId, staffId: staff?.id },
+        where: { id: editId, staffId: staff.id },
       })
     : null;
 
   const filterWhere = getWhere(params, {
     patient: { type: "relation", relationKey: "patient", field: "patientName" },
   });
-  const where = !staff
-    ? undefined
-    : filterWhere
-      ? { AND: [{ staffId: staff.id }, filterWhere] }
-      : { staffId: staff.id };
+  const where = filterWhere
+    ? { AND: [{ staffId: staff.id }, filterWhere] }
+    : { staffId: staff.id };
   const { skip, take } = getSkipTake(params);
   const orderBy = getOrderBy(params, ["startTime", "service", "status"], { startTime: "desc" });
 
   const [assignments, totalCount, patientList] = await Promise.all([
-    staff
-      ? prisma.therapyAssignment.findMany({
-          where,
-          include: { patient: true },
-          orderBy,
-          skip,
-          take,
-        })
-      : [],
-    staff ? prisma.therapyAssignment.count({ where }) : 0,
+    prisma.therapyAssignment.findMany({
+      where,
+      include: { patient: true },
+      orderBy,
+      skip,
+      take,
+    }),
+    prisma.therapyAssignment.count({ where }),
     prisma.patient.findMany({ orderBy: { patientName: "asc" } }),
   ]);
 

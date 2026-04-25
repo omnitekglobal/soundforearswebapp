@@ -121,6 +121,7 @@ model Permission {
   canAccessLedger     Boolean  @default(false)
   canAccessWalkIn     Boolean  @default(false)
   canAccessAttendance Boolean  @default(true)
+  canAccessTherapies  Boolean  @default(true)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 

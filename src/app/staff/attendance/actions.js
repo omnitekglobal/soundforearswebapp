@@ -4,18 +4,25 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { requireRole, requireSession } from "@/lib/auth";
+import { effectiveStaffModuleAccess } from "@/lib/staffModuleAccess";
 import { getNowInClinicTz } from "@/lib/datetime";
 
-async function getCurrentStaffId() {
+async function getCurrentStaffIdForAttendance() {
   const session = await requireSession();
-  const staff = await prisma.staff.findFirst({ where: { userId: session.userId } });
+  const staff = await prisma.staff.findFirst({
+    where: { userId: session.userId },
+    include: { permissions: true },
+  });
   if (!staff) throw new Error("Staff record not found.");
+  if (!effectiveStaffModuleAccess(staff.permissions).canAccessAttendance) {
+    throw new Error("You do not have permission to manage attendance.");
+  }
   return staff.id;
 }
 
 export async function createMyAttendance(formData) {
   await requireRole(["staff"]);
-  const staffId = await getCurrentStaffId();
+  const staffId = await getCurrentStaffIdForAttendance();
   const now = getNowInClinicTz();
 
   const startOfDay = new Date(now);
@@ -54,7 +61,7 @@ export async function createMyAttendance(formData) {
 
 export async function updateMyAttendance(id, formData) {
   await requireRole(["staff"]);
-  const staffId = await getCurrentStaffId();
+  const staffId = await getCurrentStaffIdForAttendance();
   const existing = await prisma.attendance.findFirst({ where: { id, staffId } });
   if (!existing) return { error: "Record not found or access denied." };
 

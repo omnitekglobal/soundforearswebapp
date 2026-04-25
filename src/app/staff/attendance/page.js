@@ -4,6 +4,7 @@ import Card from "@/components/ui/Card";
 import DataTable from "@/components/ui/DataTable";
 import Alert from "@/components/ui/Alert";
 import { requireRole, requireSession } from "@/lib/auth";
+import { effectiveStaffModuleAccess } from "@/lib/staffModuleAccess";
 import { formatDateTime } from "@/lib/format";
 import { getSkipTake, getOrderBy, getWhere } from "@/lib/tableQuery";
 import { createMyAttendance, updateMyAttendance } from "./actions";
@@ -24,36 +25,55 @@ export default async function StaffAttendancePage({ searchParams }) {
   const session = await requireSession();
   const staff = await prisma.staff.findFirst({
     where: { userId: session.userId },
+    include: { permissions: true },
   });
+
+  if (!staff) {
+    return (
+      <div className="space-y-4">
+        <Card title="My Attendance">
+          <p className="text-sm text-slate-600">No staff profile linked.</p>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!effectiveStaffModuleAccess(staff.permissions).canAccessAttendance) {
+    return (
+      <div className="space-y-4">
+        <Card title="My Attendance">
+          <p className="text-sm text-slate-600">
+            You do not have permission to use attendance. Please contact an admin.
+          </p>
+        </Card>
+      </div>
+    );
+  }
 
   const editId = typeof params.edit === "string" ? params.edit : null;
   const recordToEdit = editId
     ? await prisma.attendance.findFirst({
-        where: { id: editId, staffId: staff?.id },
+        where: { id: editId, staffId: staff.id },
       })
     : null;
 
   const filterWhere = getWhere(params, {
     patient: { type: "relation", relationKey: "patient", field: "patientName" },
   });
-  const where = !staff
-    ? undefined
-    : filterWhere
-      ? { AND: [{ staffId: staff.id }, filterWhere] }
-      : { staffId: staff.id };
+  const where = filterWhere
+    ? { AND: [{ staffId: staff.id }, filterWhere] }
+    : { staffId: staff.id };
   const { skip, take } = getSkipTake(params);
   const orderBy = getOrderBy(params, ["date", "notes"], { date: "desc" });
 
   const [records, totalCount] = await Promise.all([
-    staff
-      ? prisma.attendance.findMany({
-          where,
-          orderBy,
-          skip,
-          take,
-        })
-      : [],
-    staff ? prisma.attendance.count({ where }) : 0,
+    prisma.attendance.findMany({
+      where,
+      orderBy,
+      skip,
+      take,
+    }),
+    prisma.attendance.count({ where }),
   ]);
 
   const columns = [

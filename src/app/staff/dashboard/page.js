@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import Card from "@/components/ui/Card";
 import StatCard from "@/components/ui/StatCard";
 import { requireRole, requireSession } from "@/lib/auth";
+import { effectiveStaffModuleAccess } from "@/lib/staffModuleAccess";
 
 function startOfDay(d) {
   const x = new Date(d);
@@ -38,40 +39,65 @@ export default async function StaffDashboardPage() {
     );
   }
 
+  const access = effectiveStaffModuleAccess(staff.permissions);
   const todayStart = startOfDay(new Date());
   const todayEnd = endOfDay(new Date());
 
   const [myAttendanceCount, myAttendanceMonth, myTherapiesToday, myTherapiesUpcoming, todayWalkIns] =
     await Promise.all([
-      prisma.attendance.count({
-        where: { staffId: staff.id, date: { gte: todayStart, lte: todayEnd } },
-      }),
-      prisma.attendance.count({
-        where: {
-          staffId: staff.id,
-          date: { gte: startOfDay(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)) },
-        },
-      }),
-      prisma.therapyAssignment.count({
-        where: {
-          staffId: staff.id,
-          startTime: { gte: todayStart, lte: todayEnd },
-          status: { not: "CANCELLED" },
-        },
-      }),
-      prisma.therapyAssignment.count({
-        where: {
-          staffId: staff.id,
-          startTime: { gt: todayEnd },
-          status: "SCHEDULED",
-        },
-      }),
-      staff.permissions?.canAccessWalkIn
+      access.canAccessAttendance
+        ? prisma.attendance.count({
+            where: { staffId: staff.id, date: { gte: todayStart, lte: todayEnd } },
+          })
+        : Promise.resolve(0),
+      access.canAccessAttendance
+        ? prisma.attendance.count({
+            where: {
+              staffId: staff.id,
+              date: { gte: startOfDay(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)) },
+            },
+          })
+        : Promise.resolve(0),
+      access.canAccessTherapies
+        ? prisma.therapyAssignment.count({
+            where: {
+              staffId: staff.id,
+              startTime: { gte: todayStart, lte: todayEnd },
+              status: { not: "CANCELLED" },
+            },
+          })
+        : Promise.resolve(0),
+      access.canAccessTherapies
+        ? prisma.therapyAssignment.count({
+            where: {
+              staffId: staff.id,
+              startTime: { gt: todayEnd },
+              status: "SCHEDULED",
+            },
+          })
+        : Promise.resolve(0),
+      access.canAccessWalkIn
         ? prisma.walkIn.count({
             where: { date: { gte: todayStart, lte: todayEnd } },
           })
         : Promise.resolve(null),
     ]);
+
+  const hasQuick =
+    access.canAccessAttendance ||
+    access.canAccessTherapies ||
+    access.canAccessLedger ||
+    access.canAccessWalkIn;
+
+  const firstQuickHref = access.canAccessAttendance
+    ? "/staff/attendance"
+    : access.canAccessTherapies
+      ? "/staff/therapies"
+      : access.canAccessLedger
+        ? "/staff/ledger"
+        : access.canAccessWalkIn
+          ? "/staff/walkins"
+          : null;
 
   return (
     <div className="space-y-6">
@@ -82,71 +108,116 @@ export default async function StaffDashboardPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          label="My attendance today"
-          value={myAttendanceCount}
-          sub={`${myAttendanceMonth} in last 30 days`}
-        />
-        <StatCard
-          label="Sessions today"
-          value={myTherapiesToday}
-          sub="Therapy assignments"
-        />
-        <StatCard
-          label="Upcoming sessions"
-          value={myTherapiesUpcoming}
-          sub="Scheduled later"
-        />
-        {todayWalkIns != null && (
-          <StatCard label="Today's walk-ins" value={todayWalkIns} sub="Clinic" />
+      {(access.canAccessAttendance ||
+        access.canAccessTherapies ||
+        todayWalkIns != null) && (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {access.canAccessAttendance && (
+            <StatCard
+              label="My attendance today"
+              value={myAttendanceCount}
+              sub={`${myAttendanceMonth} in last 30 days`}
+            />
+          )}
+          {access.canAccessTherapies && (
+            <StatCard
+              label="Sessions today"
+              value={myTherapiesToday}
+              sub="Therapy assignments"
+            />
+          )}
+          {access.canAccessTherapies && (
+            <StatCard
+              label="Upcoming sessions"
+              value={myTherapiesUpcoming}
+              sub="Scheduled later"
+            />
+          )}
+          {todayWalkIns != null && (
+            <StatCard label="Today's walk-ins" value={todayWalkIns} sub="Clinic" />
+          )}
+        </div>
+      )}
+
+      <div
+        className={
+          hasQuick && access.canAccessTherapies
+            ? "grid gap-4 sm:grid-cols-2"
+            : "grid gap-4 sm:grid-cols-1"
+        }
+      >
+        {hasQuick && (
+          <Card
+            title="Quick links"
+            actions={
+              firstQuickHref ? (
+                <Link
+                  href={firstQuickHref}
+                  className="text-xs text-sky-600 hover:underline"
+                >
+                  Open
+                </Link>
+              ) : null
+            }
+          >
+            <div className="flex flex-wrap gap-2">
+              {access.canAccessAttendance && (
+                <Link
+                  href="/staff/attendance"
+                  className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200"
+                >
+                  My attendance
+                </Link>
+              )}
+              {access.canAccessTherapies && (
+                <Link
+                  href="/staff/therapies"
+                  className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200"
+                >
+                  Therapies
+                </Link>
+              )}
+              {access.canAccessLedger && (
+                <Link
+                  href="/staff/ledger"
+                  className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200"
+                >
+                  Ledger
+                </Link>
+              )}
+              {access.canAccessWalkIn && (
+                <Link
+                  href="/staff/walkins"
+                  className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200"
+                >
+                  Walk-ins
+                </Link>
+              )}
+            </div>
+          </Card>
         )}
-      </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Card
-          title="Quick links"
-          actions={
-            <Link href="/staff/attendance" className="text-xs text-sky-600 hover:underline">
-              Attendance
-            </Link>
-          }
-        >
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href="/staff/attendance"
-              className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200"
-            >
-              My attendance
-            </Link>
-            <Link
-              href="/staff/therapies"
-              className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200"
-            >
-              Therapies
-            </Link>
-            {staff.permissions?.canAccessLedger && (
-              <Link
-                href="/staff/ledger"
-                className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200"
-              >
-                Ledger
+        {access.canAccessTherapies && (
+          <Card
+            title="Today's sessions"
+            actions={
+              <Link href="/staff/therapies" className="text-xs text-sky-600 hover:underline">
+                View all
               </Link>
-            )}
-            {staff.permissions?.canAccessWalkIn && (
-              <Link
-                href="/staff/walkins"
-                className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200"
-              >
-                Walk-ins
-              </Link>
-            )}
-          </div>
-        </Card>
+            }
+          >
+            <SessionsToday staffId={staff.id} />
+          </Card>
+        )}
 
-        <Card title="Today's sessions" actions={<Link href="/staff/therapies" className="text-xs text-sky-600 hover:underline">View all</Link>}>
-          <SessionsToday staffId={staff.id} />
-        </Card>
+        {!hasQuick && !access.canAccessTherapies && (
+          <Card title="Modules">
+            <p className="text-sm text-slate-600">
+              You don&apos;t have any clinic modules enabled yet. Ask an admin to
+              turn on the areas you need under Staff → module access.
+            </p>
+          </Card>
+        )}
       </div>
     </div>
   );

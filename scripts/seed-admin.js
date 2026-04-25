@@ -50,6 +50,7 @@ async function main() {
               canAccessLedger: true,
               canAccessWalkIn: true,
               canAccessAttendance: true,
+              canAccessTherapies: true,
             },
           },
         },

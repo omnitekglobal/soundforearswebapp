@@ -32,6 +32,7 @@ export async function createStaff(formData) {
               canAccessLedger: formData.get("canAccessLedger") === "on",
               canAccessWalkIn: formData.get("canAccessWalkIn") === "on",
               canAccessAttendance: formData.get("canAccessAttendance") === "on",
+              canAccessTherapies: formData.get("canAccessTherapies") === "on",
             },
           },
         },
@@ -71,6 +72,7 @@ export async function updateStaff(id, formData) {
         canAccessLedger: formData.get("canAccessLedger") === "on",
         canAccessWalkIn: formData.get("canAccessWalkIn") === "on",
         canAccessAttendance: formData.get("canAccessAttendance") === "on",
+        canAccessTherapies: formData.get("canAccessTherapies") === "on",
       },
     });
   } else {
@@ -80,6 +82,7 @@ export async function updateStaff(id, formData) {
         canAccessLedger: formData.get("canAccessLedger") === "on",
         canAccessWalkIn: formData.get("canAccessWalkIn") === "on",
         canAccessAttendance: formData.get("canAccessAttendance") === "on",
+        canAccessTherapies: formData.get("canAccessTherapies") === "on",
       },
     });
   }

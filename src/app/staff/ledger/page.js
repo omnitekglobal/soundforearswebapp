@@ -4,6 +4,7 @@ import Card from "@/components/ui/Card";
 import DataTable from "@/components/ui/DataTable";
 import DeleteButton from "@/components/ui/DeleteButton";
 import { requireRole, requireSession } from "@/lib/auth";
+import { effectiveStaffModuleAccess } from "@/lib/staffModuleAccess";
 import { formatDateTime } from "@/lib/format";
 import { getSkipTake, getOrderBy, getWhere } from "@/lib/tableQuery";
 import {
@@ -33,7 +34,7 @@ export default async function StaffLedgerPage({ searchParams }) {
     include: { permissions: true },
   });
 
-  if (!staff?.permissions?.canAccessLedger) {
+  if (!effectiveStaffModuleAccess(staff?.permissions).canAccessLedger) {
     return (
       <div className="space-y-4">
         <Card title="Ledger">

@@ -35,8 +35,8 @@ function getRoleLabel(role) {
   return "Sound For Ears";
 }
 
-export default function RoleSidebarLayout({ role, children }) {
-  const navItems = navByRole[role] ?? [];
+export default function RoleSidebarLayout({ role, children, items }) {
+  const navItems = items ?? (navByRole[role] ?? []);
   const roleLabel = getRoleLabel(role);
 
   return (

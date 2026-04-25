@@ -4,6 +4,7 @@ import Card from "@/components/ui/Card";
 import DataTable from "@/components/ui/DataTable";
 import DeleteButton from "@/components/ui/DeleteButton";
 import { requireRole, requireSession } from "@/lib/auth";
+import { effectiveStaffModuleAccess } from "@/lib/staffModuleAccess";
 import { formatDateTime } from "@/lib/format";
 import { getSkipTake, getOrderBy, getWhere } from "@/lib/tableQuery";
 import { createWalkIn, updateWalkIn, deleteWalkIn } from "./actions";
@@ -29,7 +30,7 @@ export default async function StaffWalkinsPage({ searchParams }) {
     include: { permissions: true },
   });
 
-  if (!staff?.permissions?.canAccessWalkIn) {
+  if (!effectiveStaffModuleAccess(staff?.permissions).canAccessWalkIn) {
     return (
       <div className="space-y-4">
         <Card title="Daily Walk-ins">

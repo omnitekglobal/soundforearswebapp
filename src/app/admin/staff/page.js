@@ -15,6 +15,32 @@ export const metadata = {
 const inputClass =
   "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500";
 
+const moduleFieldClass = "h-4 w-4 rounded border-slate-300 text-sky-600";
+
+/** One row per area of the staff portal; admin toggles each module separately. */
+const STAFF_MODULE_OPTIONS = [
+  {
+    name: "canAccessAttendance",
+    label: "Attendance",
+    blurb: "Log and review own check-ins / daily attendance.",
+  },
+  {
+    name: "canAccessTherapies",
+    label: "Therapies",
+    blurb: "Therapy sessions, schedule, and assignments.",
+  },
+  {
+    name: "canAccessLedger",
+    label: "Ledger",
+    blurb: "Patient financial ledger and related entries.",
+  },
+  {
+    name: "canAccessWalkIn",
+    label: "Walk-ins",
+    blurb: "Register and browse visitor walk-ins.",
+  },
+];
+
 const STAFF_SORT_KEYS = ["name", "phone", "isActive", "createdAt"];
 const DEFAULT_ORDER = { createdAt: "desc" };
 
@@ -67,6 +93,7 @@ export default async function AdminStaffPage({ searchParams }) {
         if (p.canAccessLedger) chips.push("Ledger");
         if (p.canAccessWalkIn) chips.push("Walk-ins");
         if (p.canAccessAttendance) chips.push("Attendance");
+        if (p.canAccessTherapies) chips.push("Therapies");
         if (chips.length === 0) chips.push("None");
         return (
           <div className="flex flex-wrap gap-1">
@@ -126,7 +153,7 @@ export default async function AdminStaffPage({ searchParams }) {
       >
         <form
           action={staffToEdit ? updateStaff.bind(null, staffToEdit.id) : createStaff}
-          className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+          className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 items-start"
         >
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-500">
@@ -188,34 +215,42 @@ export default async function AdminStaffPage({ searchParams }) {
               Active
             </label>
           </div>
-          <div className="flex flex-wrap gap-4 sm:col-span-2">
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                name="canAccessLedger"
-                defaultChecked={staffToEdit?.permissions?.canAccessLedger ?? false}
-                className="h-4 w-4 rounded border-slate-300 text-sky-600"
-              />
-              <span className="text-sm">Ledger</span>
-            </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                name="canAccessWalkIn"
-                defaultChecked={staffToEdit?.permissions?.canAccessWalkIn ?? false}
-                className="h-4 w-4 rounded border-slate-300 text-sky-600"
-              />
-              <span className="text-sm">Walk-ins</span>
-            </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                name="canAccessAttendance"
-                defaultChecked={staffToEdit?.permissions?.canAccessAttendance ?? true}
-                className="h-4 w-4 rounded border-slate-300 text-sky-600"
-              />
-              <span className="text-sm">Attendance</span>
-            </label>
+          <div className="sm:col-span-2 lg:col-span-4 space-y-2">
+            <p className="text-xs font-medium text-slate-500">Module access</p>
+            <p className="text-xs text-slate-500">
+              Turn each module on or off. Staff always has the main dashboard; these
+              control sidebar links and what they can open.
+            </p>
+            <ul className="mt-2 grid gap-2 sm:grid-cols-2">
+              {STAFF_MODULE_OPTIONS.map((mod) => (
+                <li
+                  key={mod.name}
+                  className="flex gap-3 rounded-lg border border-slate-200 bg-slate-50/80 p-3"
+                >
+                  <input
+                    type="checkbox"
+                    name={mod.name}
+                    id={mod.name}
+                    defaultChecked={
+                      mod.name === "canAccessAttendance"
+                        ? (staffToEdit?.permissions?.canAccessAttendance ?? true)
+                        : mod.name === "canAccessTherapies"
+                          ? (staffToEdit?.permissions?.canAccessTherapies ?? true)
+                          : (staffToEdit?.permissions?.[mod.name] ?? false)
+                    }
+                    className={`${moduleFieldClass} mt-0.5 shrink-0`}
+                  />
+                  <label htmlFor={mod.name} className="min-w-0 cursor-pointer">
+                    <span className="text-sm font-medium text-slate-800">
+                      {mod.label}
+                    </span>
+                    <span className="mt-0.5 block text-xs text-slate-500">
+                      {mod.blurb}
+                    </span>
+                  </label>
+                </li>
+              ))}
+            </ul>
           </div>
           <div className="sm:col-span-2 flex items-center gap-2">
             <button
