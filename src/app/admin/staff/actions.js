@@ -4,10 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
 import prisma from "@/lib/prisma";
-import { requireRole } from "@/lib/auth";
+import { readPermissionFieldsFromForm } from "./staffModuleOptions";
+import { requireAdminOrStaffForModule } from "@/lib/adminAccess";
 
 export async function createStaff(formData) {
-  await requireRole(["admin"]);
+  await requireAdminOrStaffForModule("staff");
   const email = formData.get("email")?.toString().trim();
   const password = formData.get("password")?.toString();
   const name = formData.get("name")?.toString().trim();
@@ -28,12 +29,7 @@ export async function createStaff(formData) {
           phone: formData.get("phone")?.toString().trim() || null,
           isActive: formData.get("isActive") === "on",
           permissions: {
-            create: {
-              canAccessLedger: formData.get("canAccessLedger") === "on",
-              canAccessWalkIn: formData.get("canAccessWalkIn") === "on",
-              canAccessAttendance: formData.get("canAccessAttendance") === "on",
-              canAccessTherapies: formData.get("canAccessTherapies") === "on",
-            },
+            create: readPermissionFieldsFromForm(formData),
           },
         },
       },
@@ -44,7 +40,7 @@ export async function createStaff(formData) {
 }
 
 export async function updateStaff(id, formData) {
-  await requireRole(["admin"]);
+  await requireAdminOrStaffForModule("staff");
   if (!id) return { error: "Invalid staff." };
 
   const staff = await prisma.staff.findUnique({
@@ -65,25 +61,15 @@ export async function updateStaff(id, formData) {
     },
   });
 
+  const perms = readPermissionFieldsFromForm(formData);
   if (staff.permissions) {
     await prisma.permission.update({
       where: { id: staff.permissions.id },
-      data: {
-        canAccessLedger: formData.get("canAccessLedger") === "on",
-        canAccessWalkIn: formData.get("canAccessWalkIn") === "on",
-        canAccessAttendance: formData.get("canAccessAttendance") === "on",
-        canAccessTherapies: formData.get("canAccessTherapies") === "on",
-      },
+      data: perms,
     });
   } else {
     await prisma.permission.create({
-      data: {
-        staffId: id,
-        canAccessLedger: formData.get("canAccessLedger") === "on",
-        canAccessWalkIn: formData.get("canAccessWalkIn") === "on",
-        canAccessAttendance: formData.get("canAccessAttendance") === "on",
-        canAccessTherapies: formData.get("canAccessTherapies") === "on",
-      },
+      data: { staffId: id, ...perms },
     });
   }
   revalidatePath("/admin/staff");
@@ -91,7 +77,7 @@ export async function updateStaff(id, formData) {
 }
 
 export async function deleteStaff(id) {
-  await requireRole(["admin"]);
+  await requireAdminOrStaffForModule("staff");
   if (!id) return { error: "Invalid staff." };
 
   const staff = await prisma.staff.findUnique({ where: { id } });

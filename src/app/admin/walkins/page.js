@@ -2,7 +2,7 @@ import prisma from "@/lib/prisma";
 import Card from "@/components/ui/Card";
 import DataTable from "@/components/ui/DataTable";
 import DeleteButton from "@/components/ui/DeleteButton";
-import { requireRole } from "@/lib/auth";
+import { requireAdminOrStaffForModule } from "@/lib/adminAccess";
 import { getSkipTake, getOrderBy, getWhere } from "@/lib/tableQuery";
 import { createWalkIn, updateWalkIn, deleteWalkIn } from "./actions";
 import WalkInPatientFields from "./WalkInPatientFields";
@@ -36,7 +36,7 @@ function formatDateIST(d) {
 }
 
 export default async function AdminWalkinsPage({ searchParams }) {
-  await requireRole(["admin"]);
+  await requireAdminOrStaffForModule("walkins");
   const params =
     searchParams != null && typeof searchParams.then === "function"
       ? await searchParams

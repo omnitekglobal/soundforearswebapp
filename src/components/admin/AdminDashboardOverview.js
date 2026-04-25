@@ -2,7 +2,7 @@ import Link from "next/link";
 import prisma from "@/lib/prisma";
 import Card from "@/components/ui/Card";
 import StatCard from "@/components/ui/StatCard";
-import { requireRole } from "@/lib/auth";
+import { requireAdminOrStaffForModule } from "@/lib/adminAccess";
 
 function startOfDayIST(date = new Date()) {
   // IST = UTC+5:30. Get today's midnight in IST as a UTC Date.
@@ -22,7 +22,7 @@ function endOfDayIST(date = new Date()) {
 }
 
 export default async function AdminDashboardOverview() {
-  await requireRole(["admin"]);
+  await requireAdminOrStaffForModule("dashboard");
 
   const todayStart = startOfDayIST();
   const todayEnd = endOfDayIST();

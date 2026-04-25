@@ -4,7 +4,7 @@ import Card from "@/components/ui/Card";
 import DataTable from "@/components/ui/DataTable";
 import Alert from "@/components/ui/Alert";
 import DeleteButton from "@/components/ui/DeleteButton";
-import { requireRole } from "@/lib/auth";
+import { requireAdminOrStaffForModule } from "@/lib/adminAccess";
 import { formatDate } from "@/lib/format";
 import { getSkipTake, getOrderBy, getWhere } from "@/lib/tableQuery";
 import { createPatient, updatePatient, deletePatient } from "./actions";
@@ -27,7 +27,7 @@ const PATIENT_FILTER_CONFIG = {};
 const DEFAULT_ORDER = { createdAt: "desc" };
 
 export default async function AdminPatientsPage({ searchParams }) {
-  await requireRole(["admin"]);
+  await requireAdminOrStaffForModule("speechPatients");
   const params = searchParams != null && typeof searchParams.then === "function" ? await searchParams : (searchParams ?? {});
   const error =
     typeof params.error === "string" ? decodeURIComponent(params.error) : null;

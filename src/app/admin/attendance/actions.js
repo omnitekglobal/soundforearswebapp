@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
-import { requireRole } from "@/lib/auth";
+import { requireAdminOrStaffForModule } from "@/lib/adminAccess";
 import { parseDateTimeInClinicTz } from "@/lib/datetime";
 import {
   createAutoSessionDebitForAttendance,
@@ -11,7 +11,7 @@ import {
 } from "@/lib/billing";
 
 export async function createAttendance(formData) {
-  await requireRole(["admin"]);
+  await requireAdminOrStaffForModule("attendance");
   const date = parseDateTimeInClinicTz(formData.get("date"));
   if (!date) return { error: "Date & time is required." };
 
@@ -32,7 +32,7 @@ export async function createAttendance(formData) {
 }
 
 export async function updateAttendance(id, formData) {
-  await requireRole(["admin"]);
+  await requireAdminOrStaffForModule("attendance");
   if (!id) return { error: "Invalid record." };
   const date = parseDateTimeInClinicTz(formData.get("date"));
   if (!date) return { error: "Date & time is required." };
@@ -57,7 +57,7 @@ export async function updateAttendance(id, formData) {
 }
 
 export async function deleteAttendance(id) {
-  await requireRole(["admin"]);
+  await requireAdminOrStaffForModule("attendance");
   if (!id) return { error: "Invalid record." };
 
   await deleteAutoSessionDebitForAttendance(id);

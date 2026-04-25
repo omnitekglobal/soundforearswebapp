@@ -35,9 +35,9 @@ function getRoleLabel(role) {
   return "Sound For Ears";
 }
 
-export default function RoleSidebarLayout({ role, children, items }) {
+export default function RoleSidebarLayout({ role, children, items, userLabel }) {
   const navItems = items ?? (navByRole[role] ?? []);
-  const roleLabel = getRoleLabel(role);
+  const roleLabel = userLabel ?? getRoleLabel(role);
 
   return (
     <div className="min-h-screen bg-slate-50">

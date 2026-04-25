@@ -3,11 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
-import { requireRole } from "@/lib/auth";
+import { requireAdminOrStaffForModule } from "@/lib/adminAccess";
 import { parseDateTimeInClinicTz } from "@/lib/datetime";
 
 export async function createTherapyAssignment(formData) {
-  await requireRole(["admin"]);
+  await requireAdminOrStaffForModule("therapies");
   const staffId = formData.get("staffId")?.toString().trim();
   const patientId = formData.get("patientId")?.toString().trim();
   const service = formData.get("service")?.toString().trim();
@@ -32,7 +32,7 @@ export async function createTherapyAssignment(formData) {
 }
 
 export async function updateTherapyAssignment(id, formData) {
-  await requireRole(["admin"]);
+  await requireAdminOrStaffForModule("therapies");
   if (!id) return { error: "Invalid assignment." };
   const staffId = formData.get("staffId")?.toString().trim();
   const patientId = formData.get("patientId")?.toString().trim();
@@ -59,7 +59,7 @@ export async function updateTherapyAssignment(id, formData) {
 }
 
 export async function deleteTherapyAssignment(id) {
-  await requireRole(["admin"]);
+  await requireAdminOrStaffForModule("therapies");
   if (!id) return { error: "Invalid assignment." };
   await prisma.therapyAssignment.delete({ where: { id } });
   revalidatePath("/admin/therapies");

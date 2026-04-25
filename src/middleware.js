@@ -57,10 +57,15 @@ export async function middleware(request) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // If route has a required role, enforce it
-  if (requiredRole && session.role !== requiredRole) {
-    const redirectTo = roleHome[session.role] || "/";
-    return NextResponse.redirect(new URL(redirectTo, request.url));
+  // If route has a required role, enforce it (admin routes allow both admin and staff)
+  if (requiredRole) {
+    if (requiredRole === "admin" && (session.role === "admin" || session.role === "staff")) {
+      return NextResponse.next();
+    }
+    if (session.role !== requiredRole) {
+      const redirectTo = roleHome[session.role] || "/";
+      return NextResponse.redirect(new URL(redirectTo, request.url));
+    }
   }
 
   return NextResponse.next();

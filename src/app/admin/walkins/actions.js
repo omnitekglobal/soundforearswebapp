@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
-import { requireRole } from "@/lib/auth";
+import { requireAdminOrStaffForModule } from "@/lib/adminAccess";
 import { parseDateInClinicTz } from "@/lib/datetime";
 
 function parseDate(v) {
@@ -13,7 +13,7 @@ function parseDate(v) {
 }
 
 export async function createWalkIn(formData) {
-  await requireRole(["admin"]);
+  await requireAdminOrStaffForModule("walkins");
   const name = formData.get("name")?.toString().trim();
   const purpose = formData.get("purpose")?.toString().trim();
   if (!name || !purpose) return { error: "Name and purpose are required." };
@@ -32,7 +32,7 @@ export async function createWalkIn(formData) {
 }
 
 export async function updateWalkIn(id, formData) {
-  await requireRole(["admin"]);
+  await requireAdminOrStaffForModule("walkins");
   if (!id) return { error: "Invalid walk-in." };
   const name = formData.get("name")?.toString().trim();
   const purpose = formData.get("purpose")?.toString().trim();
@@ -53,7 +53,7 @@ export async function updateWalkIn(id, formData) {
 }
 
 export async function deleteWalkIn(id) {
-  await requireRole(["admin"]);
+  await requireAdminOrStaffForModule("walkins");
   if (!id) return { error: "Invalid walk-in." };
   await prisma.walkIn.delete({ where: { id } });
   revalidatePath("/admin/walkins");

@@ -4,9 +4,16 @@ import Card from "@/components/ui/Card";
 import DataTable from "@/components/ui/DataTable";
 import Alert from "@/components/ui/Alert";
 import DeleteButton from "@/components/ui/DeleteButton";
-import { requireRole } from "@/lib/auth";
 import { getSkipTake, getOrderBy, getWhere } from "@/lib/tableQuery";
+import { countAdminModulesEnabled, requireAdminOrStaffForModule } from "@/lib/adminAccess";
 import { createStaff, updateStaff, deleteStaff } from "./actions";
+import StaffModuleAccessFieldset from "./StaffModuleAccessFieldset";
+import {
+  STAFF_MODULE_OPTIONS,
+  defaultStaffModuleValues,
+  ADMIN_MODULE_OPTIONS,
+  defaultAdminModuleValues,
+} from "./staffModuleOptions";
 
 export const metadata = {
   title: "Staff – Admin",
@@ -15,37 +22,11 @@ export const metadata = {
 const inputClass =
   "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500";
 
-const moduleFieldClass = "h-4 w-4 rounded border-slate-300 text-sky-600";
-
-/** One row per area of the staff portal; admin toggles each module separately. */
-const STAFF_MODULE_OPTIONS = [
-  {
-    name: "canAccessAttendance",
-    label: "Attendance",
-    blurb: "Log and review own check-ins / daily attendance.",
-  },
-  {
-    name: "canAccessTherapies",
-    label: "Therapies",
-    blurb: "Therapy sessions, schedule, and assignments.",
-  },
-  {
-    name: "canAccessLedger",
-    label: "Ledger",
-    blurb: "Patient financial ledger and related entries.",
-  },
-  {
-    name: "canAccessWalkIn",
-    label: "Walk-ins",
-    blurb: "Register and browse visitor walk-ins.",
-  },
-];
-
 const STAFF_SORT_KEYS = ["name", "phone", "isActive", "createdAt"];
 const DEFAULT_ORDER = { createdAt: "desc" };
 
 export default async function AdminStaffPage({ searchParams }) {
-  await requireRole(["admin"]);
+  await requireAdminOrStaffForModule("staff");
   const params = searchParams != null && typeof searchParams.then === "function" ? await searchParams : (searchParams ?? {});
   const error =
     typeof params.error === "string" ? decodeURIComponent(params.error) : null;
@@ -95,16 +76,24 @@ export default async function AdminStaffPage({ searchParams }) {
         if (p.canAccessAttendance) chips.push("Attendance");
         if (p.canAccessTherapies) chips.push("Therapies");
         if (chips.length === 0) chips.push("None");
+        const nAdmin = countAdminModulesEnabled(p);
         return (
-          <div className="flex flex-wrap gap-1">
-            {chips.map((chip) => (
-              <span
-                key={chip}
-                className="inline-flex rounded-full bg-sky-50 px-2 py-0.5 text-xs text-sky-700 ring-1 ring-sky-100"
-              >
-                {chip}
-              </span>
-            ))}
+          <div className="space-y-1.5">
+            <div className="flex flex-wrap gap-1">
+              {chips.map((chip) => (
+                <span
+                  key={chip}
+                  className="inline-flex rounded-full bg-sky-50 px-2 py-0.5 text-xs text-sky-700 ring-1 ring-sky-100"
+                >
+                  {chip}
+                </span>
+              ))}
+            </div>
+            {nAdmin > 0 && (
+              <p className="text-[10px] text-slate-500">
+                Admin areas: {nAdmin} enabled
+              </p>
+            )}
           </div>
         );
       },
@@ -215,43 +204,24 @@ export default async function AdminStaffPage({ searchParams }) {
               Active
             </label>
           </div>
-          <div className="sm:col-span-2 lg:col-span-4 space-y-2">
-            <p className="text-xs font-medium text-slate-500">Module access</p>
-            <p className="text-xs text-slate-500">
-              Turn each module on or off. Staff always has the main dashboard; these
-              control sidebar links and what they can open.
-            </p>
-            <ul className="mt-2 grid gap-2 sm:grid-cols-2">
-              {STAFF_MODULE_OPTIONS.map((mod) => (
-                <li
-                  key={mod.name}
-                  className="flex gap-3 rounded-lg border border-slate-200 bg-slate-50/80 p-3"
-                >
-                  <input
-                    type="checkbox"
-                    name={mod.name}
-                    id={mod.name}
-                    defaultChecked={
-                      mod.name === "canAccessAttendance"
-                        ? (staffToEdit?.permissions?.canAccessAttendance ?? true)
-                        : mod.name === "canAccessTherapies"
-                          ? (staffToEdit?.permissions?.canAccessTherapies ?? true)
-                          : (staffToEdit?.permissions?.[mod.name] ?? false)
-                    }
-                    className={`${moduleFieldClass} mt-0.5 shrink-0`}
-                  />
-                  <label htmlFor={mod.name} className="min-w-0 cursor-pointer">
-                    <span className="text-sm font-medium text-slate-800">
-                      {mod.label}
-                    </span>
-                    <span className="mt-0.5 block text-xs text-slate-500">
-                      {mod.blurb}
-                    </span>
-                  </label>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <StaffModuleAccessFieldset
+            sectionTitle="Staff portal (their app)"
+            sectionBlurb="Controls /staff/… pages: attendance, therapies, staff ledger, walk-ins. Dashboard is always on."
+            selectAllLabel="Select all"
+            clearLabel="Clear all"
+            options={STAFF_MODULE_OPTIONS}
+            defaultValues={defaultStaffModuleValues(staffToEdit?.permissions)}
+            checkboxDataAttr="data-staff-page"
+          />
+          <StaffModuleAccessFieldset
+            sectionTitle="Clinic admin (this app, optional)"
+            sectionBlurb="If any are on, this user can open /admin/… for only those areas. Use cautiously. Full “admin” role still sees everything."
+            selectAllLabel="Select all admin pages"
+            clearLabel="Clear all"
+            options={ADMIN_MODULE_OPTIONS}
+            defaultValues={defaultAdminModuleValues(staffToEdit?.permissions)}
+            checkboxDataAttr="data-admin-page"
+          />
           <div className="sm:col-span-2 flex items-center gap-2">
             <button
               type="submit"

@@ -2,7 +2,7 @@ import Link from "next/link";
 import prisma from "@/lib/prisma";
 import Card from "@/components/ui/Card";
 import DataTable from "@/components/ui/DataTable";
-import { requireRole } from "@/lib/auth";
+import { requireAdminOrStaffForModule } from "@/lib/adminAccess";
 import { formatDateTime } from "@/lib/format";
 
 export const metadata = {
@@ -10,7 +10,7 @@ export const metadata = {
 };
 
 export default async function PatientWalletPage({ params, searchParams }) {
-  await requireRole(["admin"]);
+  await requireAdminOrStaffForModule("speechPatients");
   const resolvedParams =
     params != null && typeof params.then === "function" ? await params : params ?? {};
   const id = resolvedParams.id;

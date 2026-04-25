@@ -2,7 +2,7 @@ import prisma from "@/lib/prisma";
 import Card from "@/components/ui/Card";
 import DataTable from "@/components/ui/DataTable";
 import DeleteButton from "@/components/ui/DeleteButton";
-import { requireRole } from "@/lib/auth";
+import { requireAdminOrStaffForModule } from "@/lib/adminAccess";
 import { formatDateTime } from "@/lib/format";
 import { getSkipTake, getOrderBy, getWhere } from "@/lib/tableQuery";
 import { deleteLedgerEntry } from "./actions";
@@ -21,7 +21,7 @@ function toInputDate(d) {
 }
 
 export default async function AdminLedgerPage({ searchParams }) {
-  await requireRole(["admin"]);
+  await requireAdminOrStaffForModule("ledger");
   const params = searchParams != null && typeof searchParams.then === "function" ? await searchParams : (searchParams ?? {});
 
   const { skip, take } = getSkipTake(params);

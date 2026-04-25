@@ -2,7 +2,7 @@ import Link from "next/link";
 import prisma from "@/lib/prisma";
 import Card from "@/components/ui/Card";
 import DataTable from "@/components/ui/DataTable";
-import { requireRole } from "@/lib/auth";
+import { requireAdminOrStaffForModule } from "@/lib/adminAccess";
 import { formatDateTime } from "@/lib/format";
 import { getSkipTake, getOrderBy, getWhere } from "@/lib/tableQuery";
 import { createSaleEntry, deleteLedgerEntry } from "../actions";
@@ -22,7 +22,7 @@ function toInputDate(d) {
 }
 
 export default async function AdminSalesPage({ searchParams }) {
-  await requireRole(["admin"]);
+  await requireAdminOrStaffForModule("sales");
   const params =
     searchParams != null && typeof searchParams.then === "function"
       ? await searchParams

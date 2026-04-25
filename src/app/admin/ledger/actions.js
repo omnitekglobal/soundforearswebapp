@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
-import { requireRole } from "@/lib/auth";
+import { requireAdminOrStaffForModule } from "@/lib/adminAccess";
 import { parseDateInClinicTz } from "@/lib/datetime";
 
 function toInt(v) {
@@ -19,7 +19,7 @@ function parseDate(v) {
 }
 
 export async function createLedgerEntry(formData) {
-  await requireRole(["admin"]);
+  await requireAdminOrStaffForModule("ledger");
   const description = formData.get("description")?.toString().trim();
   if (!description) return { error: "Description is required." };
 
@@ -39,7 +39,7 @@ export async function createLedgerEntry(formData) {
 }
 
 export async function createSaleEntry(formData) {
-  await requireRole(["admin"]);
+  await requireAdminOrStaffForModule("sales");
   const description = formData.get("description")?.toString().trim();
   if (!description) return { error: "Description is required." };
 
@@ -60,7 +60,7 @@ export async function createSaleEntry(formData) {
 }
 
 export async function createPayoutEntry(formData) {
-  await requireRole(["admin"]);
+  await requireAdminOrStaffForModule("payouts");
   const description = formData.get("description")?.toString().trim();
   if (!description) return { error: "Description is required." };
 
@@ -81,7 +81,7 @@ export async function createPayoutEntry(formData) {
 }
 
 export async function updateLedgerEntry(id, formData) {
-  await requireRole(["admin"]);
+  await requireAdminOrStaffForModule("ledger");
   if (!id) return { error: "Invalid entry." };
   const description = formData.get("description")?.toString().trim();
   if (!description) return { error: "Description is required." };
@@ -103,7 +103,7 @@ export async function updateLedgerEntry(id, formData) {
 }
 
 export async function deleteLedgerEntry(id) {
-  await requireRole(["admin"]);
+  await requireAdminOrStaffForModule("ledger");
   if (!id) return { error: "Invalid entry." };
   await prisma.ledger.delete({ where: { id } });
   revalidatePath("/admin/ledger");

@@ -3,7 +3,7 @@ import prisma from "@/lib/prisma";
 import Card from "@/components/ui/Card";
 import DataTable from "@/components/ui/DataTable";
 import DeleteButton from "@/components/ui/DeleteButton";
-import { requireRole } from "@/lib/auth";
+import { requireAdminOrStaffForModule } from "@/lib/adminAccess";
 import { formatDateTime } from "@/lib/format";
 import { getSkipTake, getOrderBy, getWhere } from "@/lib/tableQuery";
 import {
@@ -26,7 +26,7 @@ function toInputDateTime(d) {
 }
 
 export default async function AdminTherapiesPage({ searchParams }) {
-  await requireRole(["admin"]);
+  await requireAdminOrStaffForModule("therapies");
   const params = searchParams != null && typeof searchParams.then === "function" ? await searchParams : (searchParams ?? {});
   const editId = typeof params.edit === "string" ? params.edit : null;
   const assignmentToEdit = editId

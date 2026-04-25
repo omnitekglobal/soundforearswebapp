@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import Card from "@/components/ui/Card";
 import DataTable from "@/components/ui/DataTable";
-import { requireRole } from "@/lib/auth";
+import { requireAdminOrStaffForModule } from "@/lib/adminAccess";
 import { formatDateTime } from "@/lib/format";
 import { getSkipTake, getOrderBy, getWhere } from "@/lib/tableQuery";
 import { createPayoutEntry, deleteLedgerEntry } from "../actions";
@@ -23,7 +23,7 @@ function toInputDate(d) {
 }
 
 export default async function AdminPayoutsPage({ searchParams }) {
-  await requireRole(["admin"]);
+  await requireAdminOrStaffForModule("payouts");
   const params =
     searchParams != null && typeof searchParams.then === "function"
       ? await searchParams

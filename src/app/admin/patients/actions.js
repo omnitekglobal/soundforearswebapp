@@ -4,7 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
 import prisma from "@/lib/prisma";
-import { requireRole } from "@/lib/auth";
+import {
+  requireAdminOrStaffForPatientType,
+  requireAdminOrStaffForPatientTypes,
+} from "@/lib/adminAccess";
 import { parseDateInClinicTz } from "@/lib/datetime";
 
 function toInt(v) {
@@ -20,7 +23,9 @@ function toIntOrNull(v) {
 }
 
 export async function createPatient(formData) {
-  await requireRole(["admin"]);
+  const patientType =
+    formData.get("patientType")?.toString().trim() || "therapy";
+  await requireAdminOrStaffForPatientType(patientType);
   const patientName = formData.get("patientName")?.toString().trim();
   if (!patientName) return { error: "Patient name is required." };
 
@@ -37,8 +42,6 @@ export async function createPatient(formData) {
   const advance = toInt(formData.get("advance"));
   const due = toInt(formData.get("due"));
   const dateVal = parseDateInClinicTz(formData.get("date"));
-  const patientType =
-    formData.get("patientType")?.toString().trim() || "therapy";
   const patientData = {
     patientName,
     childName: null,
@@ -127,8 +130,12 @@ export async function createPatient(formData) {
 }
 
 export async function updatePatient(id, formData) {
-  await requireRole(["admin"]);
   if (!id) return { error: "Invalid patient." };
+  const existing = await prisma.patient.findUnique({ where: { id } });
+  if (!existing) return { error: "Patient not found." };
+  const nextType =
+    formData.get("patientType")?.toString().trim() || existing.patientType;
+  await requireAdminOrStaffForPatientTypes(existing.patientType, nextType);
   const patientName = formData.get("patientName")?.toString().trim();
   if (!patientName) return { error: "Patient name is required." };
 
@@ -151,8 +158,7 @@ export async function updatePatient(id, formData) {
       phone: formData.get("phone")?.toString().trim() || null,
       email: formData.get("email")?.toString().trim() || null,
       address: formData.get("address")?.toString().trim() || null,
-      patientType:
-        formData.get("patientType")?.toString().trim() || undefined,
+      patientType: nextType,
     },
   });
   revalidatePath("/admin/patients");
@@ -160,8 +166,10 @@ export async function updatePatient(id, formData) {
 }
 
 export async function deletePatient(id) {
-  await requireRole(["admin"]);
   if (!id) return { error: "Invalid patient." };
+  const existing = await prisma.patient.findUnique({ where: { id } });
+  if (!existing) return { error: "Patient not found." };
+  await requireAdminOrStaffForPatientType(existing.patientType);
   const [attendanceCount, therapyCount, ledgerCount] = await Promise.all([
     prisma.attendance.count({ where: { patientId: id } }),
     prisma.therapyAssignment.count({ where: { patientId: id } }),

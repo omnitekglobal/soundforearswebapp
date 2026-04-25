@@ -122,6 +122,16 @@ model Permission {
   canAccessWalkIn     Boolean  @default(false)
   canAccessAttendance Boolean  @default(true)
   canAccessTherapies  Boolean  @default(true)
+  canAccessAdminDashboard         Boolean  @default(false)
+  canAccessAdminNormalPatients    Boolean  @default(false)
+  canAccessAdminSpeechPatients    Boolean  @default(false)
+  canAccessAdminStaff             Boolean  @default(false)
+  canAccessAdminAttendance        Boolean  @default(false)
+  canAccessAdminTherapies         Boolean  @default(false)
+  canAccessAdminSales             Boolean  @default(false)
+  canAccessAdminPayouts          Boolean  @default(false)
+  canAccessAdminLedger            Boolean  @default(false)
+  canAccessAdminWalkins           Boolean  @default(false)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 

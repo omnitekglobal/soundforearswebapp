@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { requireRole, requireSession } from "@/lib/auth";
+import { requireAdminOrStaffForModule } from "@/lib/adminAccess";
 import { getNowInClinicTz, parseTimeTodayInClinicTz } from "@/lib/datetime";
 import {
   createAutoSessionDebitForAttendance,
@@ -87,7 +88,7 @@ export async function updateMyAttendance(id, formData) {
 }
 
 export async function deleteMyAttendance(id) {
-  await requireRole(["admin"]);
+  await requireAdminOrStaffForModule("attendance");
   if (!id) return { error: "Invalid record." };
   await deleteAutoSessionDebitForAttendance(id);
   await prisma.attendance.delete({ where: { id } });
